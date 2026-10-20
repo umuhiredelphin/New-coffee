@@ -1,247 +1,157 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import axios from "axios";
-import { FaTrash, FaCheck, FaTimes } from "react-icons/fa";
-import io from "socket.io-client";
+import { FaTrash, FaCheck, FaTimes, FaBook } from "react-icons/fa";
 
-const socket = io("http://localhost:5000", {
-  auth: { token: localStorage.getItem("token") }, // Add token for secure Socket.IO
-});
-
-const axiosInstance = axios.create({
+const api = () => axios.create({
   baseURL: "http://localhost:5000/api",
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
 export default function TableReservation() {
   const [bookings, setBookings] = useState([]);
-  const [currency, setCurrency] = useState("RWF");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    // Validate token on mount
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    fetchBookings();
-
-    // Real-time updates
-    socket.on("bookingStatusUpdated", (updatedBooking) => {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === updatedBooking.id ? { ...updatedBooking, foods: updatedBooking.foods || [] } : b))
-      );
-    });
-
-    socket.on("bookingDeleted", ({ id }) => {
-      setBookings((prev) => prev.filter((b) => b.id !== id));
-    });
-
-    return () => {
-      socket.off("bookingStatusUpdated");
-      socket.off("bookingDeleted");
-    };
-  }, [navigate]);
+  useEffect(() => { fetchBookings(); }, []);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axiosInstance.get("/bookings");
-      setBookings(res.data.map((booking) => ({
-        ...booking,
-        foods: booking.foods || [], // Ensure foods is always an array
-      })));
+      const res = await api().get("/bookings");
+      const data = Array.isArray(res.data) ? res.data : res.data.bookings || [];
+      setBookings(data.map(b => ({ ...b, foods: b.foods || [] })));
     } catch (err) {
-      console.error("Fetch bookings error:", err.response?.data || err);
       setError(err.response?.data?.message || "Failed to fetch bookings");
-      if (err.response?.status === 401) {
-        alert("Session expired. Please log in again.");
-        localStorage.removeItem("token");
-        navigate("/login");
-      }
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this booking?")) return;
     try {
-      await axiosInstance.delete(`/bookings/${id}`);
-      alert("Booking deleted successfully.");
-      socket.emit("deleteBooking", { id });
+      await api().delete(`/bookings/${id}`);
+      setBookings(prev => prev.filter(b => b._id !== id && b.id !== id));
     } catch (err) {
-      console.error("Delete booking error:", err.response?.data || err);
       alert(`Failed to delete booking: ${err.response?.data?.message || err.message}`);
     }
   };
 
   const handleStatusUpdate = async (id, status) => {
     try {
-      const res = await axiosInstance.put(`/bookings/${id}/status`, { status });
-      alert(`Booking ${status.toLowerCase()} successfully!`);
-      socket.emit("updateBookingStatus", res.data);
+      const res = await api().put(`/bookings/${id}/status`, { status });
+      setBookings(prev => prev.map(b => (b._id === id || b.id === id ? { ...b, status: res.data.status || status } : b)));
     } catch (err) {
-      console.error("Status update error:", err.response?.data || err);
       alert(`Failed to update status: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const convertPrice = (price) => {
-    if (!price) return currency === "RWF" ? "0 RWF" : "$0.00";
-    if (currency === "RWF") return `${price.toLocaleString()} RWF`;
-    const exchangeRate = 1400; // Move to env or config in production
-    return `$${(price / exchangeRate).toFixed(2)}`;
-  };
-
-  const calculateTotalPrice = (foods) => {
-    if (!foods || !Array.isArray(foods)) return 0;
-    return foods.reduce((total, food) => total + (food.price || 0) * (food.quantity || 1), 0);
+  const formatTime = (dateStr) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
-    <div className="admin-container" style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="flex min-h-screen bg-espresso-950">
       <Sidebar />
-      <div style={{ flex: 1, padding: "20px", fontFamily: "Arial, sans-serif", backgroundColor: "#f0f2f5", overflowX: "auto" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "15px", color: "#333" }}>Table Reservations</h2>
-
-        <div style={{ textAlign: "right", marginBottom: "15px", marginRight: "2%" }}>
-          <label style={{ marginRight: "10px", fontWeight: "bold" }}>Currency:</label>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            style={{ padding: "6px 10px", borderRadius: "5px", border: "1px solid #77a8a8", backgroundColor: "#fff", cursor: "pointer" }}
-          >
-            <option value="RWF">RWF (Rwandan Franc)</option>
-            <option value="$">USD ($)</option>
-          </select>
+      <div className="ml-60 flex-1 p-6 overflow-y-auto">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 shadow-lg shadow-gold-500/20">
+            <FaBook className="text-2xl text-espresso-950" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-cream-50">Table Reservations</h1>
+            <p className="text-cream-50/40 text-sm mt-0.5">Manage incoming table booking requests</p>
+          </div>
         </div>
 
         {loading ? (
-          <p style={{ textAlign: "center", color: "#555" }}>Loading bookings...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-12 h-12 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
+            <p className="mt-4 text-cream-50/50 text-sm animate-pulse">Loading bookings...</p>
+          </div>
         ) : error ? (
-          <p style={{ textAlign: "center", color: "red" }}>{error}</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm mb-3"><FaTimes className="inline mr-2" />{error}</div>
+            <button onClick={fetchBookings}
+              className="px-5 py-2 rounded-xl bg-gold-400 text-espresso-950 font-semibold text-sm hover:shadow-lg hover:shadow-gold-500/20 transition-all">Retry</button>
+          </div>
         ) : bookings.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#555" }}>No bookings available.</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-xl bg-espresso-800/40 border border-espresso-700/40 text-cream-50/40 mb-3"><FaBook className="text-3xl" /></div>
+            <p className="text-cream-50/50 text-sm">No bookings available.</p>
+          </div>
         ) : (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <table style={{ width: "85%", borderCollapse: "collapse", backgroundColor: "#fff", borderRadius: "10px", overflow: "hidden", fontSize: "13px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#77a8a8", color: "#fff", textAlign: "center" }}>
-                  <th style={thStyle}>#</th>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Phone</th>
-                  <th style={thStyle}>Table</th>
-                  <th style={thStyle}>People</th>
-                  <th style={thStyle}>Food Ordered</th>
-                  <th style={thStyle}>Food Items</th>
-                  <th style={thStyle}>Total Price</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((booking, index) => {
-                  const totalPrice = calculateTotalPrice(booking.foods);
-
-                  return (
-                    <tr key={booking.id} style={{ textAlign: "center", borderBottom: "1px solid #ddd", backgroundColor: index % 2 === 0 ? "#fafafa" : "#fff" }}>
-                      <td>{index + 1}</td>
-                      <td>{booking.name}</td>
-                      <td>{booking.email || "-"}</td>
-                      <td>{booking.phone}</td>
-                      <td>{booking.table_number || booking.table_id}</td>
-                      <td>{booking.num_people}</td>
-                      <td>{booking.order_food}</td>
-                      <td>
-                        {booking.foods.length > 0 ? (
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-                            {booking.foods.map((food, i) => (
-                              <div key={i} style={{ textAlign: "center" }}>
-                                {food.image && (
-                                  <img
-                                    src={`http://localhost:5000${food.image}`}
-                                    alt={food.name}
-                                    width="35"
-                                    style={{ borderRadius: "5px", objectFit: "cover" }}
-                                    onError={(e) => (e.target.src = "/fallback-image.png")} // Fallback for broken images
-                                  />
-                                )}
-                                <p style={{ margin: 0, fontSize: "11px" }}>{food.name} x{food.quantity || 1}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p>-</p>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: "bold", color: "#333" }}>{convertPrice(totalPrice)}</td>
-                      <td>
-                        <span
-                          style={{
-                            color:
-                              booking.status === "Accepted" ? "green" :
-                              booking.status === "Rejected" ? "red" : "orange",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {booking.status || "Pending"}
+          <div className="bg-espresso-800/40 rounded-xl border border-espresso-700/40 overflow-hidden">
+            <div className="px-6 py-4 border-b border-espresso-700/40">
+              <p className="text-cream-50/50 text-sm">Showing <span className="text-cream-50 font-semibold">{bookings.length}</span> booking(s)</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-espresso-900/40">
+                    <th className="text-left px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Customer</th>
+                    <th className="text-left px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Phone</th>
+                    <th className="text-center px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Table</th>
+                    <th className="text-center px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Guests</th>
+                    <th className="text-left px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Date</th>
+                    <th className="text-left px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Time</th>
+                    <th className="text-center px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Status</th>
+                    <th className="text-center px-6 py-3.5 text-xs font-semibold text-cream-50/50 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-espresso-700/30">
+                  {bookings.map((booking) => (
+                    <tr key={booking._id || booking.id} className="hover:bg-espresso-700/20 transition-colors">
+                      <td className="px-6 py-4"><span className="font-medium text-cream-50">{booking.name}</span></td>
+                      <td className="px-6 py-4 text-cream-50/60 text-sm">{booking.email || "-"}</td>
+                      <td className="px-6 py-4 text-cream-50/60 text-sm">{booking.phone}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-3 py-1 rounded-full bg-espresso-700/40 text-cream-50 text-xs font-semibold">
+                          {booking.table_number || booking.tableId || booking.table_id || "-"}
                         </span>
                       </td>
-                      <td style={{ display: "flex", gap: "5px", justifyContent: "center", flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => handleStatusUpdate(booking.id, "Accepted")}
-                          style={{ ...buttonStyle, backgroundColor: "#28a745" }}
-                          disabled={booking.status === "Accepted"}
-                        >
-                          <FaCheck /> Accept
-                        </button>
-                        <button
-                          onClick={() => handleStatusUpdate(booking.id, "Rejected")}
-                          style={{ ...buttonStyle, backgroundColor: "#dc3545" }}
-                          disabled={booking.status === "Rejected"}
-                        >
-                          <FaTimes /> Reject
-                        </button>
-                        <button
-                          onClick={() => handleDelete(booking.id)}
-                          style={{ ...buttonStyle, backgroundColor: "#6c757d" }}
-                        >
-                          <FaTrash /> Delete
-                        </button>
+                      <td className="px-6 py-4 text-center text-cream-50/80 font-medium">{booking.num_people || booking.guests}</td>
+                      <td className="px-6 py-4 text-cream-50/60 text-sm">
+                        {booking.date ? new Date(booking.date).toLocaleDateString() : booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-cream-50/60 text-sm">{booking.time || formatTime(booking.createdAt)}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          (booking.status === "Accepted" || booking.status === "confirmed")
+                            ? "bg-emerald-500/15 text-emerald-400"
+                            : (booking.status === "Rejected" || booking.status === "cancelled")
+                            ? "bg-red-500/15 text-red-400"
+                            : "bg-gold-500/15 text-gold-400"
+                        }`}>{booking.status || "Pending"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button onClick={() => handleStatusUpdate(booking._id || booking.id, "Accepted")}
+                            disabled={booking.status === "Accepted" || booking.status === "confirmed"}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1">
+                            <FaCheck /> Accept
+                          </button>
+                          <button onClick={() => handleStatusUpdate(booking._id || booking.id, "Rejected")}
+                            disabled={booking.status === "Rejected" || booking.status === "cancelled"}
+                            className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1">
+                            <FaTimes /> Reject
+                          </button>
+                          <button onClick={() => handleDelete(booking._id || booking.id)}
+                            className="px-3 py-1.5 rounded-lg bg-espresso-600/40 text-cream-50/50 text-xs font-semibold hover:bg-espresso-500/40 hover:text-cream-50/70 transition-all flex items-center gap-1">
+                            <FaTrash /> Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
-
-const thStyle = { padding: "8px", textAlign: "center", minWidth: "70px" };
-const buttonStyle = {
-  padding: "4px 8px",
-  borderRadius: "5px",
-  border: "none",
-  cursor: "pointer",
-  color: "#fff",
-  fontWeight: "bold",
-  display: "flex",
-  alignItems: "center",
-  gap: "4px",
-  justifyContent: "center",
-  fontSize: "12px",
-  transition: "0.3s",
-  opacity: (props) => (props.disabled ? 0.5 : 1), // Visual feedback for disabled buttons
-};

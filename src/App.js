@@ -7,21 +7,26 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-// ======= PUBLIC / USER PAGES =======
-import HomeDashboard from "./components/Index"; // Default landing page
-import Home from "./components/Home"; // Logged-in homepage
+import HomeDashboard from "./components/Index";
+import Home from "./components/Home";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import BookTable from "./components/BookTable";
 import BuyNow from "./components/BuyNow";
-import UserCart from "./components/Cart"; // Renamed to avoid conflict
+import UserCart from "./components/Cart";
+import Payment from "./components/Payment";
 import About from "./components/About";
-import ResetPassword from "./components/ResetPassword"; // ✅ NEW IMPORT
+import Help from "./components/Help";
+import ResetPassword from "./components/ResetPassword";
 import OrderHistory from "./pages/OrderHistory";
 import Profile from './components/Profile';
+import MenuPage from "./pages/menu";
+import QrMenu from "./pages/QrMenu";
+import Settings from "./components/Settings";
 
-
-
+// ======= ADMIN AUTH & GUARD =======
+import AdminLogin from "./admin/Login";
+import AdminRoute from "./admin/AdminRoute";
 
 // ======= ADMIN DASHBOARD & PAGES =======
 import Admin from "./admin/Admin";
@@ -30,91 +35,53 @@ import EditUser from "./admin/EditUser";
 import AddMenu from "./admin/pages/AddMenu";
 import AddTable from "./admin/pages/AddTable";
 import TableReservation from "./admin/pages/TableReservation";
-import AdminCart from "./admin/AdminCart"; // Admin Cart version
-import ManageAccount from "./admin/ManageAccount"; // adjust path
+import AdminCart from "./admin/AdminCart";
+import ManageAccount from "./admin/ManageAccount";
+import Stock from "./admin/pages/Stock";
+import Payments from "./admin/pages/Payments";
+import Report from "./admin/pages/Report";
+import Feedback from "./admin/pages/Feedback";
+import Banners from "./admin/pages/Banners";
+import OrderSettings from "./admin/pages/OrderSettings";
+import QrCodeMenu from "./admin/pages/QrCodeMenu";
 
 // ======= EMPLOYEE DASHBOARD =======
 import Employee from "./employee/Employee";
+import EmployeeAccess from "./employee/EmployeeAccess";
+import EmployeeRegister from "./employee/EmployeeRegister";
+import EmployeeLogin from "./employee/EmployeeLogin";
+import EmployeeSettings from "./employee/EmployeeSettings";
+import EmployeeChat from "./employee/EmployeeChat";
 
-// ======= NEW NotFound Component (Single File) =======
+// ======= ADMIN EMPLOYEES =======
+import Employees from "./admin/pages/Employees";
+
 const NotFound = () => {
   const navigate = useNavigate();
 
-  const styles = {
-    notFoundContainer: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      textAlign: 'center',
-      backgroundColor: '#f8f9fa',
-      color: '#333',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      margin: 0,
-      padding: '20px',
-      boxSizing: 'border-box',
-    },
-    notFoundContent: {
-      maxWidth: '600px',
-    },
-    notFoundCode: {
-      fontSize: '10rem',
-      fontWeight: 700,
-      color: '#e0e0e0',
-      margin: 0,
-      lineHeight: 1,
-    },
-    notFoundIcon: {
-      color: '#6c757d',
-      margin: '1rem 0',
-    },
-    notFoundTitle: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-      margin: '0.5rem 0',
-    },
-    notFoundMessage: {
-      fontSize: '1.1rem',
-      color: '#6c757d',
-      lineHeight: 1.6,
-      marginBottom: '2rem',
-    },
-    goHomeBtn: {
-      display: 'inline-block',
-      backgroundColor: '#007bff',
-      color: '#ffffff',
-      padding: '12px 30px',
-      fontSize: '1rem',
-      fontWeight: 500,
-      border: 'none',
-      borderRadius: '5px',
-      cursor: 'pointer',
-      textDecoration: 'none',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-  };
-
   return (
-    <main style={styles.notFoundContainer}>
-      <div style={styles.notFoundContent}>
-        <h1 style={styles.notFoundCode}>404</h1>
-        <div style={styles.notFoundIcon}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="80px" height="80px">
+    <main className="flex items-center justify-center min-h-screen bg-espresso-950 text-center p-5">
+      <div className="max-w-xl animate-fade-in-up">
+        <h1 className="text-9xl font-bold text-gold-400 leading-none font-playfair">404</h1>
+        <div className="text-espresso-600 my-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-20 h-20 mx-auto text-gold-400/50">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
           </svg>
         </div>
-        <h2 style={styles.notFoundTitle}>Oops! Page Not Found</h2>
-        <p style={styles.notFoundMessage}>
+        <h2 className="text-4xl font-semibold text-cream-50 mb-2 font-poppins">Oops! Page Not Found</h2>
+        <p className="text-cream-200 text-lg mb-8">
           The page you're looking for doesn't exist or has been moved.
         </p>
-        <button onClick={() => navigate('/')} style={styles.goHomeBtn}>
+        <button
+          onClick={() => navigate('/')}
+          className="inline-block bg-gold-500 hover:bg-gold-400 text-espresso-950 px-8 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg"
+        >
           Go to Homepage
         </button>
       </div>
     </main>
   );
 };
-
 
 function AppWrapper() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -129,12 +96,11 @@ function AppWrapper() {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     setIsLoggedIn(false);
-    navigate("/"); // ✅ Back to Index after logout
+    navigate("/");
   };
 
   return (
     <Routes>
-      {/* ======= PUBLIC ROUTES ======= */}
       <Route
         path="/"
         element={isLoggedIn ? <Navigate to="/home" /> : <HomeDashboard />}
@@ -147,7 +113,6 @@ function AppWrapper() {
         }
       />
 
-      <Route path="/admin/manage-account" element={<ManageAccount />} />
       <Route
         path="/login"
         element={
@@ -158,6 +123,7 @@ function AppWrapper() {
           )
         }
       />
+
       <Route
         path="/signup"
         element={
@@ -169,51 +135,92 @@ function AppWrapper() {
         }
       />
 
-      {/* ✅ NEW RESET PASSWORD ROUTE */}
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      {/* ======= USER FEATURES ======= */}
       <Route path="/book-table" element={<BookTable />} />
+      <Route path="/menu" element={<MenuPage />} />
+      <Route path="/qr-menu" element={<QrMenu />} />
       <Route path="/buy/:id" element={<BuyNow />} />
       <Route path="/cart" element={<UserCart />} />
+      <Route path="/payment" element={<Payment />} />
       <Route path="/about" element={<About />} />
+      <Route path="/help" element={<Help />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/orderhistory" element={<OrderHistory />} />
 
       {/* ======= ADMIN ROUTES ======= */}
       <Route
+        path="/admin/login"
+        element={
+          <AdminLogin onLogin={(admin, token) => {
+            localStorage.setItem("admin", JSON.stringify(admin));
+            localStorage.setItem("token", token);
+            navigate("/admin");
+          }} />
+        }
+      />
+      <Route
         path="/admin"
         element={
-          isLoggedIn ? (
+          localStorage.getItem("admin") ? (
             <Admin onLogout={handleLogout} />
           ) : (
-            <Navigate to="/admin" />
+            <Navigate to="/admin/login" />
           )
         }
-        
       />
-      <Route path="/admin/users" element={<Users />} />
-      <Route path="/admin/users/edit/:id" element={<EditUser />} />
-      <Route path="/admin/menu/add" element={<AddMenu />} />
-      <Route path="/admin/tables/add" element={<AddTable />} />
-      <Route path="/admin/table-reservations" element={<TableReservation />} />
-      <Route path="/admin/cart" element={<AdminCart />} />
-
+      <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
+      <Route path="/admin/users/edit/:id" element={<AdminRoute><EditUser /></AdminRoute>} />
+      <Route path="/admin/menu/add" element={<AdminRoute><AddMenu /></AdminRoute>} />
+      <Route path="/admin/tables/add" element={<AdminRoute><AddTable /></AdminRoute>} />
+      <Route path="/admin/table-reservations" element={<AdminRoute><TableReservation /></AdminRoute>} />
+      <Route path="/admin/cart" element={<AdminRoute><AdminCart /></AdminRoute>} />
+      <Route path="/admin/stock" element={<AdminRoute><Stock /></AdminRoute>} />
+      <Route path="/admin/payments" element={<AdminRoute><Payments /></AdminRoute>} />
+      <Route path="/admin/manage-account" element={<AdminRoute><ManageAccount /></AdminRoute>} />
+      <Route path="/admin/report" element={<AdminRoute><Report /></AdminRoute>} />
+      <Route path="/admin/feedback" element={<AdminRoute><Feedback /></AdminRoute>} />
+      <Route path="/admin/banners" element={<AdminRoute><Banners /></AdminRoute>} />
+      <Route path="/admin/order-settings" element={<AdminRoute><OrderSettings /></AdminRoute>} />
+      <Route path="/admin/qr-code" element={<AdminRoute><QrCodeMenu /></AdminRoute>} />
+      <Route path="/admin/employees" element={<AdminRoute><Employees /></AdminRoute>} />
 
       {/* ======= EMPLOYEE ROUTES ======= */}
+      <Route path="/employee/access" element={<EmployeeAccess />} />
+      <Route path="/employee/register" element={<EmployeeRegister />} />
+      <Route path="/employee/login" element={<EmployeeLogin />} />
       <Route
-        path="/employee"
+        path="/employee/dashboard"
         element={
-          isLoggedIn ? (
+          localStorage.getItem("employeeToken") ? (
             <Employee onLogout={handleLogout} />
           ) : (
-            <Navigate to="/login" />
+            <Navigate to="/employee/login" />
+          )
+        }
+      />
+      <Route
+        path="/employee/settings"
+        element={
+          localStorage.getItem("employeeToken") ? (
+            <EmployeeSettings onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/employee/login" />
+          )
+        }
+      />
+      <Route
+        path="/employee/messages"
+        element={
+          localStorage.getItem("employeeToken") ? (
+            <EmployeeChat onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/employee/login" />
           )
         }
       />
 
-
-      {/* ======= FALLBACK: UPDATED to show NotFound page ======= */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

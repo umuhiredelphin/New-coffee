@@ -3,28 +3,27 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 import Navbar from "./Navbar";
+import CoffeeLoader from "./CoffeeLoader";
 import { FaShoppingCart } from "react-icons/fa";
 
-const socket = io("http://localhost:5000"); // connect to socket server
+const socket = io("http://localhost:5000");
 
 function BuyNow({ setNotifications }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [food, setFood] = useState(null);
-  const [buyerName, setBuyerName] = useState(""); // auto-filled
+  const [buyerName, setBuyerName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Mobile Money");
   const [orderType, setOrderType] = useState("Commandé");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Auto-fill user name from localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user")) || {};
     setBuyerName(user.username || "Anonymous");
   }, []);
 
-  // Fetch selected food by ID
   useEffect(() => {
     const fetchFood = async () => {
       try {
@@ -39,7 +38,6 @@ function BuyNow({ setNotifications }) {
     fetchFood();
   }, [id]);
 
-  // Handle adding to cart
   const handleAddToCart = (e) => {
     e.preventDefault();
     setMessage("");
@@ -53,7 +51,6 @@ function BuyNow({ setNotifications }) {
     const item = { ...food, quantity, paymentMethod, orderType };
     localStorage.setItem("cart", JSON.stringify([...cart, item]));
 
-    // Send notification via socket
     const notification = {
       id: Date.now(),
       message: `${buyerName} added ${food.name} (x${quantity}) to cart`,
@@ -63,49 +60,53 @@ function BuyNow({ setNotifications }) {
     socket.emit("newNotification", notification);
     setNotifications && setNotifications(prev => [notification, ...prev]);
 
-    // Show message with visible cart button
     setMessage(
-      <div style={styles.messageContainer}>
+      <div className="flex items-center gap-2 flex-wrap">
         <span>🎉 Added to cart! </span>
         <button
-          style={styles.cartButton}
+          className="bg-gradient-to-r from-gold-400 to-gold-500 text-espresso-950 font-bold px-3 py-1.5 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gold-400/25 flex items-center text-sm"
           onClick={() => navigate("/cart")}
         >
-          <FaShoppingCart style={{ marginRight: "6px" }} /> Go to Cart
+          <FaShoppingCart className="mr-1.5" /> Go to Cart
         </button>
       </div>
     );
   };
 
-  if (loading) return <div style={{ textAlign: "center", padding: "100px" }}>Loading...</div>;
-  if (!food) return <div style={{ textAlign: "center", padding: "100px", color: "red" }}>Item not found!</div>;
+  if (loading) return <CoffeeLoader message="Preparing your order..." />;
+  if (!food) return <div className="text-center py-24 text-red-400 font-poppins">Item not found!</div>;
 
   return (
-    <div>
+    <div className="bg-espresso-950 min-h-screen font-poppins">
       <Navbar />
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div
+        className="flex justify-center items-center min-h-[90vh] p-6"
+        style={{
+          background: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1950&q=80')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="bg-espresso-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-espresso-700/50 w-full max-w-md p-8 text-center">
           <img
             src={`http://localhost:5000${food.image}`}
             alt={food.name}
-            style={styles.image}
+            className="w-full h-60 object-cover rounded-xl mb-4"
           />
-          <h2 style={styles.title}>{food.name}</h2>
-          <p style={styles.price}>{food.currency} {food.price}</p>
-          <p style={styles.desc}>{food.description || "No description available."}</p>
+          <h2 className="text-gold-400 font-playfair text-3xl mb-2">{food.name}</h2>
+          <p className="text-gold-400 font-bold text-lg mb-2">{food.currency} {food.price}</p>
+          <p className="text-cream-50 font-poppins text-sm mb-6">{food.description || "No description available."}</p>
 
-          <form onSubmit={handleAddToCart} style={styles.form}>
-            {/* Buyer Name */}
-            <label style={styles.label}>Buyer Name</label>
+          <form onSubmit={handleAddToCart} className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-cream-200 text-left">Buyer Name</label>
             <input
               type="text"
               value={buyerName}
               readOnly
-              style={{ ...styles.input, backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
+              className="w-full px-4 py-3 bg-espresso-900/70 border border-espresso-700 text-cream-50 rounded-xl cursor-not-allowed focus:outline-none"
             />
 
-            {/* Quantity */}
-            <label style={styles.label}>Quantity</label>
+            <label className="text-sm font-medium text-cream-200 text-left">Quantity</label>
             <input
               type="number"
               min="1"
@@ -113,90 +114,47 @@ function BuyNow({ setNotifications }) {
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value))}
               required
-              style={styles.input}
+              className="w-full px-4 py-3 bg-espresso-900/50 border border-espresso-700 text-cream-50 rounded-xl focus:border-gold-400 focus:ring-gold-400/30 focus:outline-none transition-all duration-300 placeholder-cream-200/50"
             />
 
-            {/* Payment Method */}
-            <label style={styles.label}>Payment Method</label>
+            <label className="text-sm font-medium text-cream-200 text-left">Payment Method</label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              style={styles.select}
+              className="w-full px-4 py-3 bg-espresso-900/50 border border-espresso-700 text-cream-50 rounded-xl focus:border-gold-400 focus:ring-gold-400/30 focus:outline-none transition-all duration-300"
             >
               <option value="Mobile Money">Mobile Money</option>
               <option value="Card">Card</option>
               <option value="Cash">Cash</option>
             </select>
 
-            {/* Order Type */}
-            <label style={styles.label}>Order Type</label>
+            <label className="text-sm font-medium text-cream-200 text-left">Order Type</label>
             <select
               value={orderType}
               onChange={(e) => setOrderType(e.target.value)}
-              style={styles.select}
+              className="w-full px-4 py-3 bg-espresso-900/50 border border-espresso-700 text-cream-50 rounded-xl focus:border-gold-400 focus:ring-gold-400/30 focus:outline-none transition-all duration-300"
             >
               <option value="Commandé">Commandé (Pre-order)</option>
               <option value="Be Ordered">Be Ordered (Immediate)</option>
             </select>
 
-            <button type="submit" style={styles.button}>Add to Cart</button>
+            <button type="submit" className="w-full py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-espresso-950 font-bold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gold-400/25 text-lg mt-2">
+              Add to Cart
+            </button>
           </form>
 
-          {message && <div style={{ marginTop: "15px" }}>{message}</div>}
+          {message && <div className="mt-4">{message}</div>}
 
-          <button onClick={() => navigate(-1)} style={styles.backButton}>← Go Back</button>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-6 py-2.5 bg-espresso-800/70 text-cream-50 rounded-xl border border-espresso-700/50 hover:bg-espresso-700/50 transition-all duration-300"
+          >
+            ← Go Back
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-// Inline CSS
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "90vh",
-    padding: "30px",
-    background: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1950&q=80')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: "20px",
-    padding: "30px",
-    width: "100%",
-    maxWidth: "450px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
-    textAlign: "center",
-  },
-  image: { width: "100%", height: "250px", borderRadius: "12px", objectFit: "cover", marginBottom: "15px" },
-  title: { color: "#6f4e37", fontSize: "28px", marginBottom: "8px" },
-  price: { color: "#444", fontWeight: "bold", fontSize: "18px", marginBottom: "10px" },
-  desc: { fontSize: "15px", color: "#555", marginBottom: "20px" },
-  form: { display: "flex", flexDirection: "column", gap: "12px" },
-  label: { fontSize: "14px", fontWeight: "500", marginBottom: "4px", color: "#333", textAlign: "left" },
-  input: { padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "16px" },
-  select: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc", fontSize: "16px" },
-  button: { backgroundColor: "#6f4e37", color: "#fff", padding: "12px", border: "none", borderRadius: "10px", fontSize: "18px", cursor: "pointer", transition: "0.3s" },
-  backButton: { backgroundColor: "#ddd", color: "#333", padding: "10px", border: "none", borderRadius: "8px", fontSize: "16px", marginTop: "15px", cursor: "pointer" },
-  messageContainer: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" },
-  cartButton: {
-    backgroundColor: "#6f4e37",
-    color: "#fff",
-    padding: "6px 12px",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    fontWeight: "bold",
-    fontSize: "14px",
-    transition: "0.3s"
-  },
-  message: { marginTop: "15px", fontWeight: "bold", color: "#6f4e37" },
-};
 
 export default BuyNow;

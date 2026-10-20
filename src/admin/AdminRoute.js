@@ -1,16 +1,23 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-// AdminRoute: Wrap admin pages with this
-const AdminRoute = ({ children }) => {
+const AdminRoute = ({ children, requiredRole }) => {
   const admin = JSON.parse(localStorage.getItem("admin"));
+  const token = localStorage.getItem("token");
 
-  if (!admin || admin.role !== "admin") {
-    // Not logged in as admin, redirect to login
-    return <Navigate to="/admin/manage-account" />;
+  if (!admin || !token) {
+    return <Navigate to="/admin/login" />;
   }
 
-  // Admin is authenticated, show the page
+  if (requiredRole) {
+    const roleHierarchy = { super_admin: 3, admin: 2, manager: 1 };
+    const userLevel = roleHierarchy[admin.role] || 0;
+    const requiredLevel = roleHierarchy[requiredRole] || 0;
+    if (userLevel < requiredLevel) {
+      return <Navigate to="/admin" />;
+    }
+  }
+
   return children;
 };
 

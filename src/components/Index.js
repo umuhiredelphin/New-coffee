@@ -1,239 +1,404 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  FaCoffee,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaShoppingCart,
-  FaHome,
-  FaUser,
-  FaStar,
-  FaClock,
-  FaGift,
-  FaHeart,
-  FaStarHalfAlt,
-  FaUsers,
-  FaUtensils,
-  FaThumbsUp,
-  FaMoon,
-  FaSun,
-  FaSearch,
+  FaCoffee, FaEnvelope, FaPhone, FaMapMarkerAlt, FaShoppingCart,
+  FaStar, FaClock, FaGift, FaHeart, FaUsers, FaUtensils, FaThumbsUp,
+  FaSearch, FaArrowRight, FaUser, FaSignInAlt, FaMugHot, FaLeaf,
+  FaAward, FaSmile, FaFire, FaTrophy, FaCheckCircle, FaShieldAlt,
+  FaMoneyBillWave, FaHeadset
 } from "react-icons/fa";
+import axios from "axios";
+import bgImage from "../assets/coff.jpg";
+import CoffeeLoader from "./CoffeeLoader";
+
+const getImage = (item) => {
+  if (item.image) return `http://localhost:5000${item.image}`;
+  return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&h=300&fit=crop";
+};
 
 export default function Index() {
   const [menuItems, setMenuItems] = useState([]);
-  const [user, setUser] = useState(null);
+  const [trending, setTrending] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [darkMode, setDarkMode] = useState(true);
-  const menuSectionRef = useRef(null);
-
-  const defaultImg = "https://via.placeholder.com/300.png?text=Coffee+Item";
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/menu")
-      .then((res) => res.json())
-      .then((data) => setMenuItems(data))
-      .catch((err) => console.error(err));
-
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) setUser(storedUser);
+    Promise.all([
+      axios.get("http://localhost:5000/api/menu"),
+      axios.get("http://localhost:5000/api/menu/trending")
+    ])
+      .then(([menuRes, trendRes]) => {
+        setMenuItems(menuRes.data || []);
+        setTrending(trendRes.data.data || []);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
   }, []);
 
-  const requireLogin = () => {
-    if (!user) window.location.href = "/login";
-  };
+  const filtered = menuItems.filter(
+    (i) => !searchTerm || i.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    if (menuSectionRef.current && value.trim() !== "") {
-      menuSectionRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const filteredMenu = menuItems
-    .filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .slice(0, 4);
+  if (loading) return <CoffeeLoader />;
 
   return (
-    <div className={darkMode ? "dark-mode" : "light-mode"}>
-      {/* Navbar */}
-      <nav className={`navbar ${darkMode ? "dark-navbar" : "light-navbar"}`}>
-        <div className="logo" onClick={requireLogin}>
-          <FaCoffee /> <span>F&F Coffee</span>
+    <div className="min-h-screen bg-gradient-to-b from-espresso-950 via-espresso-900 to-espresso-950 font-poppins">
+
+      {/* ===== DISTINCT LANDING NAV ===== */}
+      <header className="sticky top-0 z-50 bg-espresso-950/90 backdrop-blur-xl border-b border-espresso-700/20 shadow-lg shadow-black/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            {/* Brand - bigger on landing */}
+            <Link to="/" className="flex items-center gap-3 no-underline group">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20 group-hover:shadow-gold-500/40 transition-all duration-300">
+                <FaCoffee className="text-espresso-950 text-lg sm:text-xl" />
+              </div>
+              <div>
+                <span className="text-lg sm:text-xl font-playfair font-bold text-cream-50 group-hover:text-gold-400 transition-colors block leading-tight">
+                  F&F Coffee
+                </span>
+                <span className="text-[10px] text-cream-50/40 tracking-[0.15em] uppercase hidden sm:block">
+                  Premium Brew Since 2015
+                </span>
+              </div>
+            </Link>
+
+            {/* Landing nav buttons - only login/signup */}
+            <nav className="flex items-center gap-2 sm:gap-3">
+              <Link to="/login"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 border border-espresso-600 hover:border-gold-500/50 text-cream-50 hover:text-gold-400 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 no-underline bg-espresso-800/50 hover:bg-espresso-800">
+                <FaSignInAlt size={13} />
+                <span className="hidden sm:inline">Sign</span> In
+              </Link>
+              <Link to="/signup"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-espresso-950 font-bold rounded-lg text-xs sm:text-sm transition-all duration-300 shadow-lg shadow-gold-500/20 hover:shadow-gold-500/40 no-underline">
+                <FaUser size={13} />
+                Sign <span className="hidden sm:inline">Up</span>
+              </Link>
+            </nav>
+          </div>
         </div>
-        <ul>
-          <li onClick={requireLogin}><FaHome /> Home</li>
-          <li><a href="/login" className={darkMode ? "link-dark" : "link-light"}><FaUser /> Login</a></li>
-          <li><a href="/signup" className={darkMode ? "link-dark" : "link-light"}><FaUser /> Sign Up</a></li>
-          <li>
-            <button className="mode-btn" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? <FaSun /> : <FaMoon />}
-            </button>
-          </li>
-        </ul>
-      </nav>
+      </header>
 
-      {/* Fixed Search */}
-      <div className={`search-wrapper ${darkMode ? "dark-search-wrapper" : "light-search-wrapper"}`}>
-        <FaSearch className="search-icon" />
-        <input
-          type="text"
-          className={`fixed-search ${darkMode ? "dark-search" : "light-search"}`}
-          placeholder="Search our menu..."
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-      </div>
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat min-h-[calc(100vh-5rem)] flex items-center" style={{ backgroundImage: `url(${bgImage})` }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-espresso-950/90 via-espresso-950/70 to-espresso-950/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(212,_168,_83,_0.08)_0%,_transparent_70%)]" />
 
-      {/* Hero */}
-      <section className="hero">
-        <h1>Welcome to F&F Coffee</h1>
-        <p>Find your perfect brew and taste the passion in every sip.</p>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-8 py-20 w-full">
+          <div className="max-w-2xl">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-400 text-xs font-semibold tracking-wide mb-6">
+              <FaLeaf size={12} /> Premium Coffee Experience
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-playfair font-bold text-cream-50 leading-[1.1] mb-4">
+              Welcome to
+              <br />
+              <span className="text-gold-400">F&F Coffee</span>
+            </h1>
+            <p className="text-cream-300/70 text-base sm:text-lg max-w-lg mb-8 leading-relaxed">
+              Find your perfect brew and taste the passion in every sip. 
+              Join us for an unforgettable coffee experience.
+            </p>
+
+            {/* Search */}
+            <div className="max-w-lg relative mb-8">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-400/60 z-10" size={14} />
+              <input
+                type="text"
+                placeholder="Search our menu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-5 py-3.5 bg-espresso-900/70 backdrop-blur-sm border border-espresso-700/50 rounded-xl text-cream-50 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500 placeholder-espresso-500 transition-all"
+              />
+            </div>
+
+            {/* CTA buttons */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Link to="/signup"
+                className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-espresso-950 font-bold rounded-xl text-sm sm:text-base transition-all duration-300 shadow-2xl shadow-gold-500/30 hover:shadow-gold-500/50 no-underline active:scale-[0.97]">
+                <FaUser size={16} /> Get Started Free
+              </Link>
+              <Link to="/login"
+                className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 bg-espresso-900/60 backdrop-blur-sm hover:bg-espresso-800/80 text-cream-50 border border-espresso-700/50 hover:border-gold-500/30 rounded-xl text-sm sm:text-base font-medium transition-all duration-300 no-underline active:scale-[0.97]">
+                <FaSignInAlt size={16} /> Sign In
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-cream-50/30">
+          <span className="text-[10px] tracking-[0.15em] uppercase">Scroll</span>
+          <div className="w-4 h-7 rounded-full border border-cream-50/20 flex justify-center pt-1.5">
+            <div className="w-1 h-1.5 rounded-full bg-gold-400/60 animate-bounce" />
+          </div>
+        </div>
       </section>
 
-      {/* White Card Wrapper */}
-      <div className={`white-card ${darkMode ? "dark-card" : ""}`}>
-        {/* Features */}
-        <section className="features">
-          <h2>Why Choose Us?</h2>
-          <div className="features-grid">
-            <div className="feature-card"><FaStar /> Premium Quality</div>
-            <div className="feature-card"><FaClock /> Fast Service</div>
-            <div className="feature-card"><FaGift /> Reward Program</div>
-            <div className="feature-card"><FaHeart /> Loved by Customers</div>
-            <div className="feature-card"><FaStarHalfAlt /> Freshly Brewed</div>
-            <div className="feature-card"><FaUsers /> Friendly Staff</div>
-            <div className="feature-card"><FaUtensils /> Wide Menu</div>
-            <div className="feature-card"><FaThumbsUp /> Highly Rated</div>
+      {/* ===== FEATURES ===== */}
+      <section className="relative -mt-16 z-10 max-w-7xl mx-auto px-4 sm:px-8 mb-8">
+        <div className="bg-espresso-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-8 shadow-2xl border border-espresso-700/20">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
+            {[
+              { icon: FaStar, label: "Premium" },
+              { icon: FaClock, label: "Fast" },
+              { icon: FaGift, label: "Rewards" },
+              { icon: FaHeart, label: "Loved" },
+              { icon: FaMugHot, label: "Fresh" },
+              { icon: FaUsers, label: "Friendly" },
+              { icon: FaUtensils, label: "Variety" },
+              { icon: FaAward, label: "Top Rated" },
+            ].map((f, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5 p-3 sm:p-4 rounded-xl bg-espresso-900/40 border border-espresso-700/10 hover:border-gold-400/20 hover:bg-espresso-900/60 transition-all duration-300 group cursor-default">
+                <f.icon className="text-gold-400 text-lg sm:text-xl group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-cream-100 text-[10px] sm:text-xs font-semibold">{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== OUR MENU ===== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-8">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <span className="text-gold-400 text-xs font-semibold tracking-[0.15em] uppercase">Browse Our Selection</span>
+            <h2 className="text-3xl sm:text-4xl font-playfair text-cream-50 font-bold mt-1">
+              Our <span className="text-gold-400">Menu</span>
+            </h2>
+            <p className="text-cream-300/50 text-sm mt-1">{filtered.length} items available</p>
+          </div>
+          <Link to="/signup" className="hidden sm:flex items-center gap-2 text-gold-400 hover:text-gold-300 text-sm font-medium transition-all no-underline group">
+            Join to Order <FaArrowRight size={11} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <FaSearch className="text-espresso-600 text-4xl mx-auto mb-3" />
+            <p className="text-cream-300/50">No items match your search.</p>
+          </div>
+        ) : (
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-espresso-900/50 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-500/40 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {filtered.map((item) => (
+              <div key={item._id || item.id}
+                className="flex-shrink-0 w-[150px] sm:w-[180px] md:w-[200px] bg-espresso-900/60 backdrop-blur-sm rounded-xl overflow-hidden border border-espresso-700/20 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                <div className="relative h-24 sm:h-28 md:h-32 overflow-hidden">
+                  <img src={getImage(item)} alt={item.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+                <div className="p-2 sm:p-2.5 md:p-3">
+                  <h4 className="text-xs sm:text-sm font-bold text-cream-50 truncate">{item.name}</h4>
+                  <p className="text-gold-400 text-xs sm:text-sm font-semibold mt-0.5">
+                    {item.currency || "RWF"} {item.price}
+                  </p>
+                  {item.description && (
+                    <p className="text-cream-300/50 text-[10px] mt-1 truncate">{item.description}</p>
+                  )}
+                  <Link to="/signup"
+                    className="mt-1.5 sm:mt-2 w-full block text-center py-1 sm:py-1.5 px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-semibold bg-gold-400 hover:bg-gold-500 text-espresso-950 transition-all duration-300 no-underline active:scale-95">
+                    <FaShoppingCart className="inline mr-1" size={9} /> Order
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="text-center mt-6 sm:hidden">
+          <Link to="/signup" className="inline-flex items-center gap-2 text-gold-400 hover:text-gold-300 text-sm font-medium transition-all no-underline">
+            Join to Order <FaArrowRight size={11} />
+          </Link>
+        </div>
+      </section>
+
+      {/* ===== TRENDING PRODUCTS ===== */}
+      {trending.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-8">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <span className="text-gold-400 text-xs font-semibold tracking-[0.15em] uppercase">Most Popular</span>
+              <h2 className="text-3xl sm:text-4xl font-playfair text-cream-50 font-bold mt-1">
+                Trending <span className="text-gold-400">Now</span>
+              </h2>
+              <p className="text-cream-300/50 text-sm mt-1">Our customers' top picks</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 text-gold-400 text-xs font-semibold">
+              <FaFire className="animate-pulse" /> Hot
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+            {trending.map((item, i) => (
+              <div key={item.name}
+                className="relative bg-espresso-900/60 backdrop-blur-sm rounded-xl overflow-hidden border border-espresso-700/20 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                {i === 0 && (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 text-espresso-950 text-[10px] font-bold shadow-lg">
+                    <FaTrophy size={9} /> #1
+                  </div>
+                )}
+                <div className="relative h-28 sm:h-32 overflow-hidden">
+                  <img src={getImage(item)} alt={item.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-espresso-950/70 text-gold-400 text-[10px] font-semibold backdrop-blur-sm">
+                    {item.totalQty} sold
+                  </div>
+                </div>
+                <div className="p-3">
+                  <h4 className="text-sm font-bold text-cream-50 truncate">{item.name}</h4>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-gold-400 text-sm font-semibold">{item.currency} {item.price}</p>
+                    <div className="flex items-center gap-0.5 text-cream-300/40 text-[10px]">
+                      <FaStar size={8} className="text-gold-400" /> {item.orderCount} orders
+                    </div>
+                  </div>
+                  <Link to="/signup"
+                    className="mt-2 w-full block text-center py-1.5 px-2 rounded-lg text-xs font-semibold bg-gold-400 hover:bg-gold-500 text-espresso-950 transition-all duration-300 no-underline active:scale-95">
+                    <FaShoppingCart className="inline mr-1" size={10} /> Order Now
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
+      )}
 
-        {/* Menu Section */}
-        <section className="menu-section" ref={menuSectionRef}>
-          <h2>Our Menu</h2>
-          {filteredMenu.length === 0 ? (
-            <p>No items found.</p>
-          ) : (
-            <div className="menu-grid">
-              {filteredMenu.map((item) => (
-                <div key={item.id} className="menu-card" onClick={requireLogin}>
-                  <img src={item.image ? "http://localhost:5000" + item.image : defaultImg} alt={item.name} />
-                  <div className="menu-info">
-                    <h4>{item.name}</h4>
-                    <p>{item.description || "Rich aroma, deep flavor."}</p>
-                    <p className="price">{item.currency} {item.price}</p>
-                    <button onClick={requireLogin}><FaShoppingCart /> Buy Now</button>
-                  </div>
+      {/* ===== WHY CHOOSE US ===== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-8">
+        <div className="bg-gradient-to-br from-espresso-800/40 to-espresso-900/40 backdrop-blur-xl rounded-2xl p-6 sm:p-10 border border-espresso-700/20">
+          <div className="text-center mb-8">
+            <span className="text-gold-400 text-xs font-semibold tracking-[0.15em] uppercase">Why We Stand Out</span>
+            <h2 className="text-3xl sm:text-4xl font-playfair text-cream-50 font-bold mt-1">
+              Why Choose <span className="text-gold-400">F&F Coffee</span>
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: FaCoffee, title: "Premium Quality", desc: "We use only the finest Arabica beans and fresh ingredients, ensuring every cup and meal meets the highest standards." },
+              { icon: FaLeaf, title: "Fresh & Organic", desc: "Our coffee is freshly roasted daily. We source locally and prioritize organic, sustainable products." },
+              { icon: FaMoneyBillWave, title: "Best Prices", desc: "Enjoy premium coffee at fair prices. We believe great taste shouldn't break the bank." },
+              { icon: FaHeadset, title: "24/7 Support", desc: "Our friendly team is always ready to help. Order online, book tables, or just chat with us anytime." },
+              { icon: FaShieldAlt, title: "Safe & Clean", desc: "Your safety is our priority. We maintain the highest hygiene standards in every preparation." },
+              { icon: FaHeart, title: "Made with Love", desc: "Every drink is handcrafted with passion and care by our skilled baristas." },
+              { icon: FaUsers, title: "Community First", desc: "We support local farmers and suppliers, building a stronger coffee community together." },
+              { icon: FaGift, title: "Rewards & Perks", desc: "Join our loyalty program and earn rewards with every purchase. Free coffee awaits!" },
+            ].map((w, i) => (
+              <div key={i}
+                className="bg-espresso-900/50 rounded-xl p-4 sm:p-5 border border-espresso-700/10 hover:border-gold-400/20 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+                <w.icon className="text-gold-400 text-xl sm:text-2xl mb-3 group-hover:scale-110 transition-transform duration-300" />
+                <h3 className="text-cream-50 font-bold text-sm sm:text-base mb-1.5">{w.title}</h3>
+                <p className="text-cream-300/50 text-xs sm:text-sm leading-relaxed">{w.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== ABOUT + STATS ===== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-8">
+        <div className="bg-espresso-800/40 backdrop-blur-xl rounded-2xl p-6 sm:p-10 border border-espresso-700/20">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <span className="text-gold-400 text-xs font-semibold tracking-[0.15em] uppercase">Our Story</span>
+              <h2 className="text-3xl sm:text-4xl font-playfair text-cream-50 font-bold mt-1 mb-4">
+                About <span className="text-gold-400">F&F Coffee</span>
+              </h2>
+              <p className="text-cream-300/70 text-sm sm:text-base leading-relaxed mb-4">
+                Since 2015, we've been passionate about crafting premium coffee
+                with love and skill. Our shop is a warm, welcoming place where
+                customers can relax, connect with friends, and enjoy Rwanda's
+                finest brews.
+              </p>
+              <p className="text-cream-300/50 text-sm leading-relaxed">
+                We focus on quality, consistency, and a memorable coffee 
+                experience every single time.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: FaSmile, value: "10K+", label: "Happy Customers" },
+                { icon: FaCoffee, value: "50+", label: "Coffee Varieties" },
+                { icon: FaUsers, value: "15", label: "Team Members" },
+                { icon: FaAward, value: "5★", label: "Rating" },
+              ].map((s, i) => (
+                <div key={i} className="bg-espresso-900/40 rounded-xl p-4 sm:p-5 text-center border border-espresso-700/10 hover:border-gold-400/20 transition-all duration-300">
+                  <s.icon className="text-gold-400 text-xl sm:text-2xl mx-auto mb-2" />
+                  <p className="text-2xl sm:text-3xl font-bold text-cream-50">{s.value}</p>
+                  <p className="text-cream-300/50 text-xs sm:text-sm">{s.label}</p>
                 </div>
               ))}
             </div>
-          )}
-        </section>
-
-        {/* About Section */}
-        <section className="about-section">
-          <h2>About F&F Coffee</h2>
-          <p>
-            Since 2015, we’ve been passionate about crafting premium coffee with love and skill.
-            Our shop is a warm, welcoming place where customers can relax, connect with friends,
-            and enjoy Rwanda’s finest brews. We focus on quality, consistency, and a memorable
-            coffee experience every single time.
-          </p>
-          <div className={`employee-card ${darkMode ? "dark-card" : ""}`}>
-            <FaUsers className="employee-icon" />
-            <p>We proudly employ 15 dedicated team members who ensure exceptional service and freshly brewed coffee daily.</p>
           </div>
-        </section>
-      </div>
-
-      {/* Footer */}
-      <footer className={`footer ${darkMode ? "dark-footer" : "light-footer"}`}>
-        <h3><FaCoffee /> F&F Coffee Shop</h3>
-        <div className="footer-contact">
-          <p><FaMapMarkerAlt /> Kigali, Rwanda</p>
-          <p><FaPhone /> +250 788 123 456</p>
-          <p><FaEnvelope /> contact@ffcoffee.com</p>
         </div>
-        <p>© 2025 All Rights Reserved.</p>
+      </section>
+
+      {/* ===== CTA ===== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gold-500/15 via-espresso-900 to-gold-500/5 border border-gold-500/20 p-8 sm:p-12 text-center">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gold-500/5 rounded-full blur-3xl" />
+
+          <div className="relative">
+            <FaCoffee className="text-gold-400 text-3xl sm:text-4xl mx-auto mb-4" />
+            <h2 className="text-3xl sm:text-4xl font-playfair text-cream-50 font-bold mb-3">
+              Ready for a <span className="text-gold-400">great coffee</span>?
+            </h2>
+            <p className="text-cream-300/60 max-w-lg mx-auto mb-8 text-sm sm:text-base">
+              Create your account to order online, book tables, and earn 
+              exclusive rewards.
+            </p>
+            <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+              <Link to="/signup"
+                className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-espresso-950 font-bold rounded-xl text-sm sm:text-base transition-all duration-300 shadow-xl shadow-gold-500/20 hover:shadow-gold-500/40 no-underline active:scale-[0.97]">
+                <FaUser size={16} /> Get Started
+              </Link>
+              <Link to="/login"
+                className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-espresso-800/60 hover:bg-espresso-800 text-cream-50 border border-espresso-700/50 hover:border-gold-500/30 rounded-xl text-sm sm:text-base font-medium transition-all duration-300 no-underline active:scale-[0.97]">
+                <FaSignInAlt size={16} /> Sign In
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="border-t border-espresso-800/50 py-12 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid sm:grid-cols-3 gap-8 mb-8">
+            <div>
+              <Link to="/" className="flex items-center gap-2 text-lg font-playfair text-gold-400 hover:text-gold-300 transition-colors no-underline mb-3">
+                <FaCoffee /> F&F Coffee
+              </Link>
+              <p className="text-cream-300/50 text-xs leading-relaxed max-w-xs">
+                Premium coffee experience since 2015. Crafted with love in Rwanda.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-cream-50 text-sm font-semibold mb-3">Quick Links</h4>
+              <div className="space-y-1.5">
+                <Link to="/login" className="block text-cream-300/50 hover:text-gold-400 text-xs transition-colors no-underline">Sign In</Link>
+                <Link to="/signup" className="block text-cream-300/50 hover:text-gold-400 text-xs transition-colors no-underline">Create Account</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-cream-50 text-sm font-semibold mb-3">Contact</h4>
+              <div className="space-y-1.5 text-cream-300/50 text-xs">
+                <p className="flex items-center gap-2"><FaMapMarkerAlt className="text-gold-400/60" size={10} /> Kigali, Rwanda</p>
+                <p className="flex items-center gap-2"><FaPhone className="text-gold-400/60" size={10} /> +250 788 123 456</p>
+                <p className="flex items-center gap-2"><FaEnvelope className="text-gold-400/60" size={10} /> contact@ffcoffee.com</p>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-espresso-800/30 pt-6 text-center">
+            <p className="text-cream-300/30 text-xs">
+              &copy; {new Date().getFullYear()} F&F Coffee. All rights reserved.
+            </p>
+          </div>
+        </div>
       </footer>
-
-      {/* CSS */}
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        html, body { height: 100%; }
-
-        .dark-mode { background: #121212; color: #fff; }
-        .light-mode { background: #f7f7f7; color: #222; }
-
-        /* Navbar */
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; position: sticky; top: 0; z-index: 999; }
-        .dark-navbar { background: #000; color: #fff; }
-        .light-navbar { background: #fff; color: #222; }
-        .logo { display: flex; align-items: center; gap: 10px; font-size: 1.6rem; cursor: pointer; color: #d9a65e; }
-        ul { display: flex; list-style: none; gap: 25px; align-items: center; }
-        li, a { display: flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 500; color: inherit; }
-        li:hover, a:hover { color: #d9a65e; }
-        .mode-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: inherit; }
-
-        /* Hero */
-        .hero { text-align: center; padding: 80px 20px; background: rgba(0,0,0,0.15); }
-        .hero h1 { color: #d9a65e; font-size: 2.8rem; margin-bottom: 10px; }
-        .hero p { margin-bottom: 20px; font-size: 1.1rem; }
-
-        /* Fixed Search */
-        .search-wrapper { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; align-items: center; width: 90%; max-width: 450px; padding: 5px 15px; border-radius: 50px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .dark-search-wrapper { background: rgba(0,0,0,0.85); }
-        .light-search-wrapper { background: rgba(255,255,255,0.95); }
-        .fixed-search { flex: 1; border: none; outline: none; padding: 10px 15px; border-radius: 50px; background: transparent; color: inherit; }
-        .dark-search { color: #fff; }
-        .light-search { color: #222; }
-        .search-icon { margin-right: 10px; font-size: 1.2rem; color: #d9a65e; }
-
-        /* White Card */
-        .white-card { background: #fff; border-radius: 20px; padding: 40px 20px; max-width: 1200px; margin: 100px auto 40px; color: #222; }
-        .dark-card { background: #222; color: #fff; }
-
-        /* Features */
-        .features { text-align: center; margin-bottom: 50px; }
-        .features h2 { color: #d9a65e; margin-bottom: 30px; }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .feature-card { background: #f7f7f7; color: #222; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; }
-        .dark-mode .feature-card { background: #333; color: #fff; }
-        .feature-card:hover { transform: scale(1.05); color: #d9a65e; }
-
-        /* Menu */
-        .menu-section { text-align: center; margin-bottom: 50px; }
-        .menu-section h2 { color: #d9a65e; margin-bottom: 30px; }
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; justify-items: center; }
-        .menu-card { background: #f7f7f7; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.3s; width: 250px; height: 360px; display: flex; flex-direction: column; color: inherit; }
-        .dark-mode .menu-card { background: #333; }
-        .menu-card:hover { transform: translateY(-5px); }
-        .menu-card img { width: 100%; height: 180px; object-fit: cover; }
-        .menu-info { padding: 15px; text-align: left; flex-grow: 1; }
-        .menu-info h4 { color: #d9a65e; margin-bottom: 5px; }
-        .menu-info button { background: #d9a65e; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-        /* About */
-        .about-section { text-align: center; max-width: 800px; margin: auto; }
-        .about-section h2 { color: #d9a65e; margin-bottom: 15px; }
-        .employee-card { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 15px; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: inherit; }
-        .employee-icon { font-size: 2rem; color: #d9a65e; }
-
-        /* Footer */
-        .footer { text-align: center; padding: 40px 20px; margin-top: 60px; }
-        .dark-footer { background: #000; color: #fff; }
-        .light-footer { background: #f7f7f7; color: #222; }
-        .footer h3 { color: #d9a65e; margin-bottom: 10px; }
-        .footer-contact p { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 5px 0; }
-
-        @media(max-width: 700px) {
-          .navbar { flex-direction: column; gap: 10px; }
-          ul { flex-direction: column; }
-          .hero h1 { font-size: 2rem; }
-          .menu-card { width: 100%; height: auto; }
-        }
-      `}</style>
     </div>
   );
 }

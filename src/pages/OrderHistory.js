@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
-import "./OrderHistory.css";
+import CoffeeLoader from "../components/CoffeeLoader";
 import { 
   FaCalendarAlt, 
   FaBox,          
@@ -14,8 +14,6 @@ import {
   FaCheck,
   FaTruck,
   FaShoppingBag,
-  FaExclamationCircle,
-  FaMapMarkerAlt,
   FaClock
 } from "react-icons/fa";
 
@@ -217,7 +215,7 @@ const OrderHistory = () => {
         </div>
 
         {/* Loading / Error / Empty */}
-        {loading && <p>Loading orders...</p>}
+        {loading && <CoffeeLoader message="Loading your orders..." />}
         {error && <p className="error">{error}</p>}
         {!loading && !error && filteredOrders.length === 0 && (
           <div className="empty-state">

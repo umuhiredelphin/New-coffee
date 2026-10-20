@@ -1,30 +1,32 @@
-// EditUser.js
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
+import { FaUserEdit, FaSpinner, FaArrowLeft, FaSave } from "react-icons/fa";
+
+const api = () => axios.create({
+  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+});
 
 export default function EditUser() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [form, setForm] = useState({ username: "", email: "", phone: "" });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/users/${id}`);
-        setUser(res.data);
+        const res = await api().get(`http://localhost:5000/api/users/${id}`);
         setForm({
-          username: res.data.username,
-          email: res.data.email,
+          username: res.data.username || res.data.name || "",
+          email: res.data.email || "",
           phone: res.data.phone || "",
         });
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch user.");
+      } catch {
+        setError("Failed to load user data.");
       } finally {
         setLoading(false);
       }
@@ -32,144 +34,80 @@ export default function EditUser() {
     fetchUser();
   }, [id]);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      await axios.put(`http://localhost:5000/api/users/${id}`, form);
-      alert("User updated successfully!");
+      await api().put(`http://localhost:5000/api/users/${id}`, form);
       navigate("/admin/users");
     } catch (err) {
-      console.error(err);
-      alert("Failed to update user.");
+      alert(err.response?.data?.message || "Failed to update user.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <p>Loading user...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-
   return (
-    <div className="admin-container" style={{ display: "flex" }}>
+    <div className="min-h-screen bg-espresso-950 flex">
       <Sidebar />
-      <div className="users-page" style={{ flex: 1, padding: "20px" }}>
-        <h2>Edit User</h2>
-        <form onSubmit={handleSubmit} className="edit-form">
-          <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
-            placeholder="Username"
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Email"
-            required
-          />
-          <input
-            type="text"
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="Phone"
-          />
-          <div className="form-buttons">
-            <button type="submit" className="btn save-btn">
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/admin/users")}
-              className="btn cancel-btn"
-            >
-              Cancel
-            </button>
+      <div className="ml-60 flex-1 p-6">
+        <div className="max-w-lg mx-auto">
+          <button onClick={() => navigate("/admin/users")}
+            className="inline-flex items-center gap-2 text-sm text-cream-50/50 hover:text-cream-50 transition-colors mb-6">
+            <FaArrowLeft className="text-xs" /> Back to Users
+          </button>
+
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
+              <FaUserEdit className="text-espresso-950 text-lg" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-cream-50 font-playfair">Edit User</h1>
+              <p className="text-sm text-cream-50/50">Update user account details</p>
+            </div>
           </div>
-        </form>
+
+          {error && <div className="mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>}
+
+          {loading ? (
+            <div className="flex items-center justify-center gap-3 py-20">
+              <FaSpinner className="animate-spin text-gold-400 text-xl" />
+              <span className="text-cream-50/50 text-sm">Loading user...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm text-cream-50/60 mb-1.5">Username</label>
+                <input type="text" name="username" value={form.username} onChange={handleChange} required
+                  className="w-full px-4 py-3 rounded-xl bg-espresso-900/60 border border-espresso-700/50 text-cream-50 placeholder-cream-50/30 focus:outline-none focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/20 transition-all text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm text-cream-50/60 mb-1.5">Email</label>
+                <input type="email" name="email" value={form.email} onChange={handleChange} required
+                  className="w-full px-4 py-3 rounded-xl bg-espresso-900/60 border border-espresso-700/50 text-cream-50 placeholder-cream-50/30 focus:outline-none focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/20 transition-all text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm text-cream-50/60 mb-1.5">Phone</label>
+                <input type="text" name="phone" value={form.phone} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl bg-espresso-900/60 border border-espresso-700/50 text-cream-50 placeholder-cream-50/30 focus:outline-none focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/20 transition-all text-sm" />
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button type="submit" disabled={saving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-espresso-950 font-bold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-lg shadow-gold-500/20 disabled:opacity-50">
+                  {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+                <button type="button" onClick={() => navigate("/admin/users")}
+                  className="px-5 py-2.5 rounded-xl border border-espresso-700/50 text-cream-50/60 hover:text-cream-50 hover:border-espresso-600/50 transition-all text-sm">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-
-      {/* Embedded CSS */}
-      <style>{`
-        .users-page {
-          max-width: 600px;
-          margin: auto;
-          font-family: Arial, sans-serif;
-        }
-
-        .users-page h2 {
-          text-align: center;
-          margin-bottom: 20px;
-          color: #333;
-        }
-
-        .edit-form {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .edit-form input {
-          width: 100%;
-          padding: 10px 12px;
-          margin-bottom: 15px;
-          border: 1px solid #ccc;
-          border-radius: 6px;
-          font-size: 1rem;
-          transition: border-color 0.2s ease-in-out;
-        }
-
-        .edit-form input:focus {
-          border-color: #77a8a8;
-          outline: none;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-start;
-          gap: 10px;
-        }
-
-        .btn {
-          padding: 10px 18px;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: background-color 0.2s ease-in-out;
-        }
-
-        .save-btn {
-          background-color: #77a8a8;
-          color: #fff;
-        }
-
-        .save-btn:hover {
-          background-color: #559999;
-        }
-
-        .cancel-btn {
-          background-color: #f44336;
-          color: #fff;
-        }
-
-        .cancel-btn:hover {
-          background-color: #d32f2f;
-        }
-
-        @media (max-width: 500px) {
-          .users-page {
-            padding: 10px;
-          }
-          .form-buttons {
-            flex-direction: column;
-          }
-        }
-      `}</style>
     </div>
   );
 }

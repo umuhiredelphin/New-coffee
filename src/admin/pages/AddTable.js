@@ -1,550 +1,152 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../Sidebar";
-import { FiEdit, FiTrash2, FiPlus, FiX, FiCheck } from "react-icons/fi";
+import axios from "axios";
+import { FaChair, FaTable, FaPlus, FaTrash, FaImage, FaUpload } from "react-icons/fa";
 
-// --- Design System (Colors, Shadows, etc.) ---
-const theme = {
-  colors: {
-    primary: '#3E2723', // Deep Coffee Brown
-    secondary: '#5D4037', // Lighter Brown
-    accent: '#FF9800',   // Vibrant Orange
-    background: '#FDFBF9', // Creamy Off-White
-    surface: '#FFFFFF',   // Pure White for cards
-    textPrimary: '#212121',
-    textSecondary: '#757575',
-    border: '#E0E0E0',
-    success: '#4CAF50', // Green for success
-  },
-  shadows: {
-    card: '0 4px 12px rgba(0, 0, 0, 0.08)',
-    button: '0 2px 5px rgba(0, 0, 0, 0.1)',
-    notification: '0 4px 20px rgba(0, 0, 0, 0.15)',
-  },
-  borderRadius: '12px',
-};
-
-// --- Success Notification Component ---
-const SuccessNotification = ({ isVisible, message, subMessage, onClose }) => {
-  if (!isVisible) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      zIndex: 1000,
-      backgroundColor: theme.colors.surface,
-      borderRadius: theme.borderRadius,
-      boxShadow: theme.shadows.notification,
-      padding: '1.5rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem',
-      minWidth: '300px',
-      maxWidth: '400px',
-      transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
-      transition: 'transform 0.3s ease-in-out',
-      animation: 'slideIn 0.3s ease-out',
-    }}>
-      <div style={{
-        backgroundColor: theme.colors.success,
-        color: 'white',
-        width: '50px',
-        height: '50px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <FiCheck size={24} />
-      </div>
-      <div style={{ flex: 1 }}>
-        <h3 style={{ margin: '0 0 0.25rem 0', color: theme.colors.textPrimary, fontSize: '1.1rem' }}>
-          {message}
-        </h3>
-        <p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
-          {subMessage}
-        </p>
-      </div>
-      <button
-        onClick={onClose}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: theme.colors.textSecondary,
-          padding: '0.25rem',
-        }}
-      >
-        <FiX size={18} />
-      </button>
-    </div>
-  );
-};
-
-// --- Styles Object ---
-const styles = {
-  pageWrapper: {
-    display: "flex",
-    minHeight: "100vh",
-    backgroundColor: theme.colors.background,
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-  },
-  mainContent: {
-    flex: 1,
-    padding: "2rem",
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '2rem',
-  },
-  heading: {
-    color: theme.colors.primary,
-    fontSize: '2.5rem',
-    fontWeight: '700',
-    margin: 0,
-  },
-  // --- Tab Navigation Styles ---
-  tabContainer: {
-    display: 'flex',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius,
-    padding: '0.5rem',
-    marginBottom: '2rem',
-    boxShadow: theme.shadows.card,
-    width: 'fit-content',
-  },
-  tab: {
-    padding: '0.75rem 1.5rem',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: 'transparent',
-    color: theme.colors.textSecondary,
-    fontSize: '1rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  activeTab: {
-    backgroundColor: theme.colors.accent,
-    color: theme.colors.surface,
-    boxShadow: theme.shadows.button,
-  },
-  // --- Table Grid View Styles ---
-  tablesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '1.5rem',
-  },
-  tableCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius,
-    boxShadow: theme.shadows.card,
-    overflow: 'hidden',
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  cardImage: {
-    width: '100%',
-    height: '200px',
-    objectFit: 'cover',
-  },
-  cardBody: {
-    padding: '1.5rem',
-    flexGrow: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  cardTitle: {
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    margin: '0 0 0.5rem 0',
-  },
-  cardStatus: {
-    fontSize: '0.9rem',
-    color: theme.colors.textSecondary,
-    marginBottom: '1rem',
-  },
-  cardActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '0.5rem',
-    marginTop: 'auto',
-  },
-  iconButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'background-color 0.2s ease, color 0.2s ease',
-  },
-  editButton: {
-    color: theme.colors.primary,
-  },
-  deleteButton: {
-    color: '#D32F2F', // Red for delete
-  },
-  // --- Form Styles (Used for both Add and Edit) ---
-  formContainer: {
-    backgroundColor: theme.colors.surface,
-    padding: '2.5rem',
-    borderRadius: theme.borderRadius,
-    boxShadow: theme.shadows.card,
-    maxWidth: '600px',
-    margin: '0 auto',
-    width: '100%',
-  },
-  formHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1.5rem',
-  },
-  formHeading: {
-    fontSize: '1.75rem',
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    margin: 0,
-  },
-  cancelButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: theme.colors.textSecondary,
-  },
-  label: {
-    display: 'block',
-    marginBottom: '0.5rem',
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-  },
-  input: {
-    width: '100%',
-    padding: '0.75rem 1rem',
-    fontSize: '1rem',
-    borderRadius: '8px',
-    border: `1px solid ${theme.colors.border}`,
-    boxSizing: 'border-box',
-  },
-  imagePreviewContainer: {
-    marginTop: '1rem',
-    textAlign: 'center',
-  },
-  previewImg: {
-    maxWidth: '100%',
-    maxHeight: '250px',
-    borderRadius: '8px',
-    objectFit: 'cover',
-    boxShadow: theme.shadows.card,
-  },
-  formActions: {
-    display: 'flex',
-    gap: '1rem',
-    marginTop: '1.5rem',
-  },
-  submitButton: {
-    backgroundColor: theme.colors.accent,
-    color: theme.colors.surface,
-    border: 'none',
-    padding: '0.9rem 2rem',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease, transform 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    flexGrow: 1,
-  },
-  cancelButtonForm: {
-    backgroundColor: '#ccc',
-    color: '#333',
-    border: 'none',
-    padding: '0.9rem 2rem',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
-  },
-};
-
-// --- Sub-Component for a single Table Card ---
-const TableCard = ({ table, onEdit, onDelete }) => {
-  return (
-    <div style={styles.tableCard}>
-      <img
-        src={table.table_image}
-        alt={`Table ${table.table_number}`}
-        style={styles.cardImage}
-      />
-      <div style={styles.cardBody}>
-        <h3 style={styles.cardTitle}>Table {table.table_number}</h3>
-        <p style={styles.cardStatus}>Status: Available</p>
-        <div style={styles.cardActions}>
-          <button style={{ ...styles.iconButton, ...styles.editButton }} onClick={() => onEdit(table)}>
-            <FiEdit size={18} />
-          </button>
-          <button style={{ ...styles.iconButton, ...styles.deleteButton }} onClick={() => onDelete(table.id)}>
-            <FiTrash2 size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Main Component ---
-const TablePage = () => {
-  const [showForm, setShowForm] = useState(false);
-  const [tables, setTables] = useState([]);
-  const [editingTable, setEditingTable] = useState(null);
+export default function AddTable() {
   const [tableNumber, setTableNumber] = useState("");
   const [tableImage, setTableImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  
-  // State for success notification
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [successSubMessage, setSuccessSubMessage] = useState("");
-
-  const showSuccessNotification = (message, subMessage) => {
-    setSuccessMessage(message);
-    setSuccessSubMessage(subMessage);
-    setShowSuccess(true);
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 5000);
-  };
+  const [preview, setPreview] = useState(null);
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const fileRef = useRef();
 
   const fetchTables = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/tables");
-      const data = await res.json();
-      setTables(data);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to fetch tables");
-    }
+      const res = await axios.get("http://localhost:5000/api/tables");
+      setTables(Array.isArray(res.data) ? res.data : res.data.tables || []);
+    } catch { alert("Failed to fetch tables."); }
   };
 
-  useEffect(() => {
-    fetchTables();
-  }, []);
+  useEffect(() => { fetchTables(); }, []);
 
-  // --- Form Handlers ---
+  const handleImage = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setTableImage(f);
+    setPreview(URL.createObjectURL(f));
+  };
+
   const resetForm = () => {
     setTableNumber("");
     setTableImage(null);
-    setImagePreview(null);
-    setEditingTable(null);
-    setShowForm(false);
-  };
-
-  const handleEditClick = (table) => {
-    setEditingTable(table);
-    setTableNumber(table.table_number);
-    setImagePreview(table.table_image);
-    setShowForm(true);
-  };
-
-  // --- CORRECTED: handleDeleteClick function ---
-  const handleDeleteClick = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this table?")) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`http://localhost:5000/api/tables/${id}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showSuccessNotification(
-          "Table deleted successfully!",
-          `Table ID: ${id}`
-        );
-        fetchTables();
-      } else {
-        alert(`Error: ${data.message || "Failed to delete table"}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Network error. Could not delete table.");
-    }
+    setPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!tableNumber) {
-      alert("Table number is required!");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("tableNumber", tableNumber);
-    if (tableImage && typeof tableImage !== 'string') { // Only append if it's a new file
-      formData.append("tableImage", tableImage);
-    }
-
-    const isEditing = editingTable !== null;
-    const url = isEditing
-      ? `http://localhost:5000/api/tables/${editingTable.id}`
-      : "http://localhost:5000/api/tables";
-    const method = isEditing ? "PUT" : "POST";
-
+    if (!tableNumber) return alert("Table number is required.");
+    setLoading(true);
     try {
-      const res = await fetch(url, {
-        method: method,
-        body: formData,
+      const fd = new FormData();
+      fd.append("tableNumber", tableNumber);
+      if (tableImage) fd.append("tableImage", tableImage);
+      await axios.post("http://localhost:5000/api/tables", fd, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
-      const data = await res.json();
-      if (res.ok) {
-        showSuccessNotification(
-          `Table ${isEditing ? 'updated' : 'added'} successfully!`,
-          `Table Number: ${tableNumber}`
-        );
-        resetForm();
-        fetchTables();
-      } else {
-        alert(data.message || `Failed to ${isEditing ? 'update' : 'add'} table`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(`Error ${isEditing ? 'updating' : 'adding'} table`);
-    }
+      resetForm();
+      fetchTables();
+    } catch { alert("Failed to add table."); }
+    finally { setLoading(false); }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setTableImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      // Handle case where file is deselected
-      setTableImage(null);
-      setImagePreview(editingTable ? editingTable.table_image : null);
-    }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this table?")) return;
+    try { await axios.delete(`http://localhost:5000/api/tables/${id}`); fetchTables(); }
+    catch { alert("Failed to delete table."); }
   };
 
   return (
-    <div style={styles.pageWrapper}>
+    <div className="min-h-screen bg-espresso-950 flex">
       <Sidebar />
-      <div style={styles.mainContent}>
-        <header style={styles.header}>
-          <h1 style={styles.heading}>Tables Management</h1>
-        </header>
-
-        <div style={styles.tabContainer}>
-          <button
-            style={{ ...styles.tab, ...(!showForm ? styles.activeTab : {}) }}
-            onClick={() => resetForm()}
-          >
-            Manage Tables
-          </button>
-          <button
-            style={{ ...styles.tab, ...(showForm ? styles.activeTab : {}) }}
-            onClick={() => setShowForm(true)}
-          >
-            <FiPlus /> Add New Table
-          </button>
+      <div className="ml-60 flex-1 p-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-cream-50 tracking-tight">
+            <FaChair className="inline mr-3 text-gold-400" /> Tables Management
+          </h1>
         </div>
 
-        {showForm ? (
-          <div style={styles.formContainer}>
-            <div style={styles.formHeader}>
-              <h2 style={styles.formHeading}>
-                {editingTable ? "Edit Table" : "Add a New Table"}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit}
+              className="bg-espresso-900/60 border border-espresso-800/40 rounded-2xl p-8 shadow-xl shadow-black/20 animate-fade-in sticky top-8">
+              <h2 className="text-xl font-bold text-cream-50 mb-6 flex items-center gap-3">
+                <FaPlus className="text-gold-400" /> Add New Table
               </h2>
-              <button style={styles.cancelButton} onClick={resetForm}>
-                <FiX size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <label style={styles.label}>
-                Table Number
-                <input
-                  type="text"
-                  value={tableNumber}
-                  onChange={(e) => setTableNumber(e.target.value)}
-                  required
-                  style={styles.input}
-                />
-              </label>
-
-              <label style={styles.label}>
-                Table Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={styles.input}
-                />
-              </label>
-
-              {imagePreview && (
-                <div style={styles.imagePreviewContainer}>
-                  <img src={imagePreview} alt="Preview" style={styles.previewImg} />
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-cream-50/80 mb-2">
+                    <FaTable className="inline mr-1.5 text-gold-400 text-xs" /> Table Number
+                  </label>
+                  <input type="number" value={tableNumber} onChange={e => setTableNumber(e.target.value)}
+                    placeholder="e.g. 1" min="1" required
+                    className="w-full bg-espresso-950 border border-espresso-700/60 rounded-xl px-4 py-3 text-cream-50 placeholder-cream-50/30 focus:outline-none focus:border-gold-400/60 focus:ring-1 focus:ring-gold-400/30 transition-all" />
                 </div>
-              )}
-
-              <div style={styles.formActions}>
-                <button type="button" onClick={resetForm} style={styles.cancelButtonForm}>
-                  Cancel
-                </button>
-                <button type="submit" style={styles.submitButton}>
-                  <FiPlus /> {editingTable ? "Update Table" : "Add Table Now"}
-                </button>
+                <div>
+                  <label className="block text-sm font-semibold text-cream-50/80 mb-2">
+                    <FaImage className="inline mr-1.5 text-gold-400 text-xs" /> Table Image
+                  </label>
+                  <input type="file" ref={fileRef} onChange={handleImage} accept="image/*"
+                    className="w-full bg-espresso-950 border border-espresso-700/60 rounded-xl px-4 py-3 text-cream-50 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gold-500/20 file:text-gold-400 file:text-sm file:font-semibold hover:file:bg-gold-500/30 focus:outline-none focus:border-gold-400/60 transition-all" />
+                </div>
+                {preview && (
+                  <div className="rounded-xl overflow-hidden border border-espresso-700/40">
+                    <img src={preview} alt="Preview" className="w-full h-44 object-cover" />
+                  </div>
+                )}
               </div>
+              <button type="submit" disabled={loading}
+                className="mt-6 w-full flex items-center justify-center gap-3 bg-gradient-to-r from-gold-500 to-gold-600 text-espresso-950 font-bold py-3.5 rounded-xl text-lg hover:from-gold-400 hover:to-gold-500 transition-all duration-200 shadow-lg shadow-gold-500/20 disabled:opacity-50">
+                <FaUpload className={loading ? "animate-pulse" : ""} />
+                {loading ? "Adding..." : "Add Table"}
+              </button>
             </form>
           </div>
-        ) : (
-          <div style={styles.tablesGrid}>
-            {tables.length === 0 ? (
-              <p>No tables found. Add one to get started!</p>
-            ) : (
-              tables.map((table) => (
-                <TableCard
-                  key={table.id}
-                  table={table}
-                  onEdit={handleEditClick}
-                  onDelete={handleDeleteClick}
-                />
-              ))
-            )}
+
+          <div className="lg:col-span-3">
+            <div className="bg-espresso-900/60 border border-espresso-800/40 rounded-2xl p-6 shadow-xl shadow-black/20 animate-fade-in">
+              <h2 className="text-xl font-bold text-cream-50 mb-6 flex items-center gap-3">
+                <FaTable className="text-gold-400" /> Existing Tables
+                <span className="ml-auto text-sm font-normal text-cream-50/50">{tables.length} table{tables.length !== 1 ? "s" : ""}</span>
+              </h2>
+
+              {tables.length === 0 ? (
+                <div className="text-center py-16">
+                  <FaChair className="text-5xl text-espresso-700 mx-auto mb-4" />
+                  <p className="text-cream-50/50 text-lg">No tables yet. Add one!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {tables.map(table => (
+                    <div key={table._id || table.id}
+                      className="group bg-espresso-950/60 border border-espresso-800/40 rounded-xl overflow-hidden hover:border-gold-500/30 transition-all duration-200">
+                      {table.table_image ? (
+                        <img src={table.table_image} alt={`Table ${table.table_number}`}
+                          className="w-full h-36 object-cover" />
+                      ) : (
+                        <div className="w-full h-36 bg-espresso-800/40 flex items-center justify-center">
+                          <FaChair className="text-4xl text-espresso-700" />
+                        </div>
+                      )}
+                      <div className="p-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-cream-50 text-lg">Table {table.table_number}</h3>
+                          <p className="text-xs text-cream-50/40">ID: {table._id || table.id}</p>
+                        </div>
+                        <button onClick={() => handleDelete(table._id || table.id)}
+                          className="p-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/25 transition-all opacity-0 group-hover:opacity-100">
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
-      
-      {/* Success Notification Component */}
-      <SuccessNotification
-        isVisible={showSuccess}
-        message={successMessage}
-        subMessage={successSubMessage}
-        onClose={() => setShowSuccess(false)}
-      />
     </div>
   );
-};
-
-export default TablePage;
+}

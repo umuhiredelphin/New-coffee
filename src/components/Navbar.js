@@ -14,12 +14,14 @@ import {
   FaCheckCircle,
   FaExclamationCircle,
   FaClock,
-  FaHistory,
-  FaBars,
-  FaBox,       // Icon for latest orders
-  FaTh,        // Icon for profile menu
-  FaCog,       // Settings icon
-  FaChevronRight, // Icon for menu items
+  FaBox,
+  FaTh,
+  FaCog,
+  FaChevronRight,
+  FaTags,
+  FaFire,
+  FaStar,
+  FaHeadset,
 } from "react-icons/fa";
 import axios from "axios";
 
@@ -29,47 +31,27 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [scrollShadow, setScrollShadow] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("all"); // 'all', 'orders'
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [showProfileMenu, setShowProfileMenu] = useState(false); // State for profile menu dropdown
-  const profileMenuRef = useRef(null); // Ref for detecting clicks outside the profile menu
+  const [activeTab, setActiveTab] = useState("all");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const notifRef = useRef(null);
 
-  // Helper: get full image URL
   const getImageUrl = (path) => (path ? `http://localhost:5000${path}` : "https://via.placeholder.com/150");
 
-  // --- Effects ---
-  // Track window width for responsive behavior
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      if (window.innerWidth > 768) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Add/remove scroll shadow
   useEffect(() => {
     const handleScroll = () => setScrollShadow(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Load cart count from localStorage
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
     setCartCount(cart.length);
   }, []);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -83,8 +65,6 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Data Fetching ---
-  // Fetch notifications from the server
   const fetchNotifications = useCallback(async () => {
     if (!user || !user.username) return;
     try {
@@ -114,11 +94,10 @@ const Navbar = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Refetch every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // --- Event Handlers ---
   const handleToggleNotifications = () => {
     setShowNotifications(!showNotifications);
     if (!showNotifications) markAllAsRead();
@@ -136,7 +115,6 @@ const Navbar = () => {
 
   const handleNavClick = (path) => {
     navigate(path);
-    setIsMobileMenuOpen(false);
   };
 
   const handleNotificationClick = (notif) => {
@@ -156,23 +134,21 @@ const Navbar = () => {
     return date.toLocaleDateString();
   };
 
-  const isMobile = windowWidth <= 768;
-
   return (
     <>
-      <nav style={{...styles.navbar, boxShadow: scrollShadow ? "0 3px 12px rgba(0,0,0,0.3)" : "none"}}>
-        <div style={styles.left}>
+      <nav className={`flex justify-between items-center bg-black/90 backdrop-blur-xl text-cream-50 font-poppins px-8 py-3 mx-auto max-w-7xl fixed top-0 left-0 right-0 w-full z-[9999] rounded-t-2xl transition-all duration-300 ${scrollShadow ? 'shadow-2xl shadow-black/50' : 'shadow-none'}`}>
+        <div className="flex items-center">
           {user ? (
-            <div style={styles.profileSection}>
+            <div className="flex items-center relative">
               <div 
-                style={styles.profileImageContainer}
+                className="w-9 h-9 rounded-full overflow-hidden cursor-pointer flex items-center justify-center relative mr-1"
                 onClick={() => navigate("/profile")}
               >
                 {user.profileImage ? (
                   <img
                     src={getImageUrl(user.profileImage)}
                     alt="Profile"
-                    style={styles.profileImage}
+                    className="w-full h-full object-cover rounded-full"
                     onError={(e) => { 
                       e.target.onerror = null; 
                       e.target.style.display = "none";
@@ -183,30 +159,26 @@ const Navbar = () => {
                 <FaUserCircle 
                   size={28} 
                   color="#fff" 
-                  style={{ 
-                    display: user.profileImage ? "none" : "flex" 
-                  }} 
+                  className={user.profileImage ? "hidden" : "flex"} 
                 />
               </div>
               
-              {/* Profile Menu Toggle Button */}
               <div 
-                style={styles.profileMenuToggle}
+                className="flex items-center justify-center p-2 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
                 <FaTh size={24} color="#fff" />
               </div>
               
-              {/* Profile Menu Dropdown */}
               {showProfileMenu && (
-                <div style={styles.profileMenu} ref={profileMenuRef}>
-                  <div style={styles.profileMenuHeader}>
-                    <div style={styles.profileMenuImageContainer}>
+                <div className="absolute top-0 left-11 w-[280px] bg-espresso-900 rounded-xl shadow-2xl z-[100] overflow-hidden" ref={profileMenuRef}>
+                  <div className="flex items-center p-4 border-b border-espresso-800">
+                    <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex items-center justify-center">
                       {user.profileImage ? (
                         <img
                           src={getImageUrl(user.profileImage)}
                           alt="Profile"
-                          style={styles.profileMenuImage}
+                          className="w-full h-full object-cover"
                           onError={(e) => { 
                             e.target.onerror = null; 
                             e.target.style.display = "none";
@@ -217,20 +189,18 @@ const Navbar = () => {
                       <FaUserCircle 
                         size={24} 
                         color="#fff" 
-                        style={{ 
-                          display: user.profileImage ? "none" : "flex" 
-                        }} 
+                        className={user.profileImage ? "hidden" : "flex"} 
                       />
                     </div>
-                    <div style={styles.profileMenuInfo}>
-                      <div style={styles.profileMenuName}>{user?.username || "User"}</div>
-                      <div style={styles.profileMenuEmail}>{user?.email || ""}</div>
+                    <div className="flex flex-col">
+                      <div className="text-base font-semibold text-cream-50">{user?.username || "User"}</div>
+                      <div className="text-sm text-cream-100/60">{user?.email || ""}</div>
                     </div>
                   </div>
                   
-                  <div style={styles.profileMenuItems}>
+                  <div className="flex flex-col">
                     <button 
-                      style={styles.profileMenuItem} 
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 border-b border-espresso-800 text-cream-50 cursor-pointer hover:bg-espresso-800/50 transition-all duration-300 w-full"
                       onClick={() => {
                         navigate("/profile");
                         setShowProfileMenu(false);
@@ -241,9 +211,9 @@ const Navbar = () => {
                       <FaChevronRight size={12} color="#666" />
                     </button>
                     <button 
-                      style={styles.profileMenuItem} 
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 border-b border-espresso-800 text-cream-50 cursor-pointer hover:bg-espresso-800/50 transition-all duration-300 w-full"
                       onClick={() => {
-                        navigate("/settings"); // Navigate to the new settings page
+                        navigate("/settings");
                         setShowProfileMenu(false);
                       }}
                     >
@@ -252,7 +222,7 @@ const Navbar = () => {
                       <FaChevronRight size={12} color="#666" />
                     </button>
                     <button 
-                      style={{...styles.profileMenuItem, ...styles.logoutItem}} 
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 border-b border-espresso-800 text-red-500 cursor-pointer hover:bg-espresso-800/50 transition-all duration-300 w-full"
                       onClick={() => {
                         localStorage.removeItem("user");
                         navigate("/");
@@ -268,85 +238,84 @@ const Navbar = () => {
               )}
             </div>
           ) : (
-            <FaUserCircle size={28} color="#777" onClick={() => handleNavClick("/login")} style={{ cursor: "pointer" }} />
+            <FaUserCircle size={28} color="#777" onClick={() => handleNavClick("/login")} className="cursor-pointer" />
           )}
         </div>
 
-        {/* Hamburger menu for mobile */}
-        {isMobile && (
-          <div style={styles.mobileMenuIcon} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <FaTimes size={24} color="#fff" /> : <FaBars size={24} color="#fff" />}
-          </div>
-        )}
+        <ul className="list-none flex gap-0 m-0 p-0 items-center">
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/")}><FaHome size={13} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">Home</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/menu")}><FaUtensils size={11} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">Menu</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/menu")}><FaTags size={11} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">Categories</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/menu")}><FaFire size={11} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">Best Sellers</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/menu")}><FaStar size={11} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">New Arrivals</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/book-table")}><FaChair size={13} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">Book</span></button></li>
+          <li><button className="bg-transparent border-none text-cream-50 font-medium flex items-center gap-0.5 cursor-pointer text-[10px] sm:text-xs lg:text-sm px-1 sm:px-1.5 lg:px-2.5 py-1.5 rounded-lg hover:text-gold-400 hover:bg-espresso-800/50 transition-all duration-300 whitespace-nowrap" onClick={() => handleNavClick("/about")}><FaInfoCircle size={11} /> <span className="inline text-[10px] sm:text-[11px] lg:text-sm">About</span></button></li>
+        </ul>
 
-        {/* Desktop navigation links */}
-        {!isMobile && (
-          <ul style={styles.navLinks}>
-            <li><button style={styles.linkBtn} onClick={() => handleNavClick("/")}><FaHome /> Home</button></li>
-            <li><button style={styles.linkBtn} onClick={() => handleNavClick("/menu")}><FaUtensils /> Menu</button></li>
-            <li><button style={styles.linkBtn} onClick={() => handleNavClick("/book-table")}><FaChair /> Book Table</button></li>
-            <li><button style={styles.linkBtn} onClick={() => handleNavClick("/about")}><FaInfoCircle /> About</button></li>
-            <li><button style={styles.linkBtn} onClick={() => handleNavClick("/help")}><FaQuestionCircle /> Help</button></li>
-          </ul>
-        )}
-
-        <div style={styles.rightSection}>
-          <div style={styles.iconWrapper} onClick={() => handleNavClick("/cart")}>
-            <FaShoppingCart size={22} color="#fff" />
-            {cartCount > 0 && <span style={styles.iconBadge}>{cartCount}</span>}
+        <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 mr-1 sm:mr-2">
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300" onClick={() => handleNavClick("/help")}>
+            <FaQuestionCircle size={16} color="#fff" />
           </div>
 
-          {/* Latest Orders Icon */}
-          <div style={styles.iconWrapper}>
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300" onClick={() => handleNavClick("/about")}>
+            <FaHeadset size={16} color="#fff" />
+          </div>
+
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300" onClick={() => handleNavClick("/settings")}>
+            <FaCog size={16} color="#fff" />
+          </div>
+
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300" onClick={() => handleNavClick("/cart")}>
+            <FaShoppingCart size={16} color="#fff" />
+            {cartCount > 0 && <span className="absolute -top-1.5 -right-1.5 bg-gold-400 rounded-full px-1.5 py-0.5 text-[10px] text-espresso-950 font-bold">{cartCount}</span>}
+          </div>
+
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300">
             <FaBox 
-              size={22} 
+              size={16} 
               color="#fff" 
               onClick={() => navigate("/orderhistory")} 
-              style={{ cursor: "pointer" }}
+              className="cursor-pointer"
             />
           </div>
 
-          {/* Notifications Icon */}
-          <div style={styles.iconWrapper} ref={notifRef}>
-            <FaBell size={22} color="#fff" onClick={handleToggleNotifications} />
-            {unreadCount > 0 && <span style={styles.iconBadge}>{unreadCount}</span>}
+          <div className="relative p-1 rounded-full cursor-pointer bg-espresso-950 hover:bg-espresso-800 transition-all duration-300" ref={notifRef}>
+            <FaBell size={16} color="#fff" onClick={handleToggleNotifications} />
+            {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-gold-400 rounded-full px-1 py-0 text-[9px] text-espresso-950 font-bold">{unreadCount}</span>}
 
             {showNotifications && (
-              <div style={{
-                ...styles.notificationBox,
-                ...(isMobile ? styles.notificationBoxMobile : {})
-              }}>
-                <div style={styles.notificationHeader}>
-                  <h4 style={{ margin: 0 }}>Notifications</h4>
-                  <FaTimes style={{ cursor: "pointer" }} onClick={() => setShowNotifications(false)} />
+              <div className="absolute top-10 right-0 w-[350px] max-w-[90vw] bg-espresso-900 text-cream-50 rounded-xl shadow-2xl p-3 z-[100]">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="m-0 text-cream-50 font-semibold">Notifications</h4>
+                  <FaTimes className="cursor-pointer text-cream-50" onClick={() => setShowNotifications(false)} />
                 </div>
                 
-                <div style={styles.notificationTabs}>
-                  <button style={{...styles.tabBtn, ...(activeTab === 'all' ? styles.activeTab : {})}} onClick={() => setActiveTab('all')}>All</button>
-                  <button style={{...styles.tabBtn, ...(activeTab === 'orders' ? styles.activeTab : {})}} onClick={() => setActiveTab('orders')}>Orders</button>
+                <div className="flex border-b border-espresso-800 mb-2.5">
+                  <button className={`bg-transparent border-none px-3 py-2 cursor-pointer transition-all duration-300 ${activeTab === 'all' ? 'text-cream-50 border-b-2 border-gold-400' : 'text-cream-100/60 border-b-2 border-transparent hover:text-cream-50'}`} onClick={() => setActiveTab('all')}>All</button>
+                  <button className={`bg-transparent border-none px-3 py-2 cursor-pointer transition-all duration-300 ${activeTab === 'orders' ? 'text-cream-50 border-b-2 border-gold-400' : 'text-cream-100/60 border-b-2 border-transparent hover:text-cream-50'}`} onClick={() => setActiveTab('orders')}>Orders</button>
                 </div>
 
-                <ul style={styles.notificationList}>
+                <ul className="list-none p-0 m-0 max-h-[300px] overflow-y-auto">
                   {filteredNotifications.length === 0 ? (
-                    <li style={styles.noNotif}>No new notifications</li>
+                    <li className="text-center text-cream-100/60 py-5">No new notifications</li>
                   ) : (
                     filteredNotifications.map(notif => (
-                      <li key={notif.id} style={{...styles.notificationItem, ...(notif.read ? styles.readNotification : {})}} onClick={() => handleNotificationClick(notif)}>
-                        <div style={styles.notifRow}>
-                          <div style={styles.notifContent}>
-                            <div style={styles.notifIcon}>
+                      <li key={notif.id} className={`mb-2.5 p-2.5 border-b border-espresso-800 rounded-lg transition-all duration-300 cursor-pointer ${notif.read ? 'opacity-70 bg-white/5' : 'hover:bg-espresso-800/50'}`} onClick={() => handleNotificationClick(notif)}>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2.5 flex-1">
+                            <div className="flex items-center">
                               {notif.status === "Confirmed" || notif.status === "Accepted" ? 
                                 <FaCheckCircle color="#2ecc71" /> : 
                                 notif.status === "Cancelled" || notif.status === "Rejected" ? 
                                   <FaExclamationCircle color="#e74c3c" /> : 
                                   <FaClock color="#f39c12" />}
                             </div>
-                            <div style={styles.notifDetails}>
-                              <span style={styles.notifMessage}>{notif.message}</span>
-                              <span style={styles.notifTime}>{formatTimestamp(notif.timestamp)}</span>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium text-sm text-cream-50">{notif.message}</span>
+                              <span className="text-xs text-cream-100/60">{formatTimestamp(notif.timestamp)}</span>
                             </div>
                           </div>
-                          {!notif.read && <div style={styles.unreadDot}></div>}
+                          {!notif.read && <div className="w-2 h-2 rounded-full bg-gold-400"></div>}
                         </div>
                       </li>
                     ))
@@ -354,8 +323,8 @@ const Navbar = () => {
                 </ul>
 
                 {notifications.length > 0 && (
-                  <div style={styles.notificationFooter}>
-                    <button style={styles.markAllReadBtn} onClick={markAllAsRead}>Mark all as read</button>
+                  <div className="border-t border-espresso-800 pt-2.5 mt-1">
+                    <button className="bg-transparent border border-gold-400 text-gold-400 rounded px-3 py-1.5 text-xs cursor-pointer hover:bg-gold-400 hover:text-espresso-950 transition-all duration-300" onClick={markAllAsRead}>Mark all as read</button>
                   </div>
                 )}
               </div>
@@ -364,348 +333,9 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile menu overlay */}
-      {isMobile && isMobileMenuOpen && (
-        <div style={styles.mobileMenuOverlay}>
-          <ul style={styles.mobileNavLinks}>
-            <li><button style={styles.mobileLinkBtn} onClick={() => handleNavClick("/")}><FaHome /> Home</button></li>
-            <li><button style={styles.mobileLinkBtn} onClick={() => handleNavClick("/menu")}><FaUtensils /> Menu</button></li>
-            <li><button style={styles.mobileLinkBtn} onClick={() => handleNavClick("/book-table")}><FaChair /> Book Table</button></li>
-            <li><button style={styles.mobileLinkBtn} onClick={() => handleNavClick("/about")}><FaInfoCircle /> About</button></li>
-            <li><button style={styles.mobileLinkBtn} onClick={() => handleNavClick("/help")}><FaQuestionCircle /> Help</button></li>
-          </ul>
-        </div>
-      )}
-
-      <div style={{ height: "75px" }} />
+      <div className="h-[75px]" />
     </>
   );
-};
-
-// --- Styles ---
-const styles = {
-  navbar: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    backgroundColor: "#111", 
-    padding: "12px 30px", 
-    margin: "0 auto", 
-    maxWidth: "1200px", 
-    color: "#fff", 
-    position: "fixed", 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    width: "100%", 
-    zIndex: 9999, 
-    borderRadius: "15px 15px 0 0", 
-    transition: "box-shadow 0.3s ease, background-color 0.3s ease" 
-  },
-  left: { display: "flex", alignItems: "center" },
-  profileSection: {
-    display: "flex",
-    alignItems: "center",
-    position: "relative"
-  },
-  profileImageContainer: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    overflow: "hidden",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    marginRight: "5px"
-  },
-  profileImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    borderRadius: "50%"
-  },
-  profileMenuToggle: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "8px", // Increased from 6px to accommodate larger icon
-    borderRadius: "50%",
-    cursor: "pointer",
-    background: "#222",
-    transition: "background 0.2s"
-  },
-  profileMenu: {
-    position: "absolute",
-    top: "0",
-    left: "45px",
-    width: "280px",
-    backgroundColor: "#1e1e1e",
-    borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.5)",
-    zIndex: 100,
-    overflow: "hidden"
-  },
-  profileMenuHeader: {
-    display: "flex",
-    alignItems: "center",
-    padding: "15px",
-    borderBottom: "1px solid #333"
-  },
-  profileMenuImageContainer: {
-    width: "50px",
-    height: "50px",
-    borderRadius: "50%",
-    overflow: "hidden",
-    marginRight: "12px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  profileMenuImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover"
-  },
-  profileMenuInfo: {
-    display: "flex",
-    flexDirection: "column"
-  },
-  profileMenuName: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#fff"
-  },
-  profileMenuEmail: {
-    fontSize: "14px",
-    color: "#aaa"
-  },
-  profileMenuItems: {
-    display: "flex",
-    flexDirection: "column"
-  },
-  profileMenuItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12px",
-    padding: "12px 15px",
-    background: "none",
-    border: "none",
-    color: "#fff",
-    cursor: "pointer",
-    transition: "background 0.2s",
-    borderBottom: "1px solid #333"
-  },
-  logoutItem: {
-    color: "#e74c3c"
-  },
-  navLinks: { 
-    listStyle: "none", 
-    display: "flex", 
-    gap: "25px", 
-    margin: 0, 
-    padding: 0, 
-    alignItems: "center" 
-  },
-  linkBtn: { 
-    background: "none", 
-    border: "none", 
-    color: "#fff", 
-    fontWeight: 500, 
-    display: "flex", 
-    alignItems: "center", 
-    gap: "6px", 
-    cursor: "pointer", 
-    fontSize: "16px", 
-    padding: "8px 12px", 
-    borderRadius: "8px", 
-    transition: "0.2s" 
-  },
-  rightSection: { 
-    display: "flex", 
-    alignItems: "center", 
-    gap: "15px", 
-    marginRight: "20px" 
-  },
-  iconWrapper: { 
-    position: "relative", 
-    padding: "6px", 
-    borderRadius: "50%", 
-    cursor: "pointer", 
-    background: "#222" 
-  },
-  iconBadge: { 
-    position: "absolute", 
-    top: "-6px", 
-    right: "-6px", 
-    background: "#e74c3c", 
-    borderRadius: "50%", 
-    padding: "2px 6px", 
-    fontSize: "11px", 
-    color: "#fff" 
-  },
-  notificationBox: { 
-    position: "absolute", 
-    top: "40px", 
-    right: 0, 
-    backgroundColor: "#1e1e1e", 
-    color: "#fff", 
-    borderRadius: "12px", 
-    boxShadow: "0 4px 15px rgba(0,0,0,0.5)", 
-    padding: "12px", 
-    width: "350px", 
-    zIndex: 100 
-  },
-  notificationBoxMobile: {
-    width: "90vw",
-    maxWidth: "350px",
-    right: "5vw",
-    left: "5vw"
-  },
-  notificationHeader: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginBottom: "8px" 
-  },
-  notificationTabs: { 
-    display: "flex", 
-    borderBottom: "1px solid #333", 
-    marginBottom: "10px" 
-  },
-  tabBtn: { 
-    background: "none", 
-    border: "none", 
-    color: "#aaa", 
-    padding: "8px 12px", 
-    cursor: "pointer", 
-    borderBottom: "2px solid transparent", 
-    transition: "all 0.2s" 
-  },
-  activeTab: { 
-    color: "#fff", 
-    borderBottom: "2px solid #3498db" 
-  },
-  notificationList: { 
-    listStyle: "none", 
-    padding: 0, 
-    margin: 0, 
-    maxHeight: "300px", 
-    overflowY: "auto" 
-  },
-  notificationItem: { 
-    marginBottom: "10px", 
-    padding: "10px", 
-    borderBottom: "1px solid #333", 
-    borderRadius: "6px", 
-    transition: "background 0.2s", 
-    cursor: "pointer" 
-  },
-  readNotification: { 
-    opacity: 0.7, 
-    background: "rgba(255,255,255,0.05)" 
-  },
-  notifRow: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "center" 
-  },
-  notifContent: { 
-    display: "flex", 
-    alignItems: "center", 
-    gap: "10px", 
-    flex: 1 
-  },
-  notifIcon: { 
-    display: "flex", 
-    alignItems: "center" 
-  },
-  notifDetails: { 
-    display: "flex", 
-    flexDirection: "column", 
-    gap: "4px" 
-  },
-  notifMessage: { 
-    fontWeight: 500, 
-    fontSize: "14px" 
-  },
-  notifTime: { 
-    fontSize: "12px", 
-    color: "#aaa" 
-  },
-  unreadDot: { 
-    width: "8px", 
-    height: "8px", 
-    borderRadius: "50%", 
-    background: "#3498db" 
-  },
-  noNotif: { 
-    textAlign: "center", 
-    color: "#aaa", 
-    padding: "20px 0" 
-  },
-  notificationFooter: { 
-    borderTop: "1px solid #333", 
-    paddingTop: "10px", 
-    marginTop: "5px" 
-  },
-  markAllReadBtn: { 
-    background: "none", 
-    border: "1px solid #3498db", 
-    color: "#3498db", 
-    borderRadius: "4px", 
-    padding: "6px 12px", 
-    fontSize: "12px", 
-    cursor: "pointer", 
-    transition: "all 0.2s" 
-  },
-  mobileMenuIcon: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    padding: "5px"
-  },
-  mobileMenuOverlay: {
-    position: "fixed",
-    top: "75px",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    zIndex: 9998,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    paddingTop: "20px"
-  },
-  mobileNavLinks: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center"
-  },
-  mobileLinkBtn: {
-    background: "none",
-    border: "none",
-    color: "#fff",
-    fontWeight: 500,
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    cursor: "pointer",
-    fontSize: "18px",
-    padding: "15px 20px",
-    borderRadius: "8px",
-    transition: "0.2s",
-    width: "80%",
-    justifyContent: "flex-start"
-  }
 };
 
 export default Navbar;

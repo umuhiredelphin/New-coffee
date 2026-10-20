@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../Sidebar";
-import { FaTrash, FaEdit } from "react-icons/fa";
+import { FaEdit, FaTrash, FaUsers, FaSearch, FaSpinner, FaUserPlus } from "react-icons/fa";
 
-const axiosInstance = axios.create({
+const api = axios.create({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
@@ -12,92 +12,130 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to view users.");
-        navigate("/login");
-        return;
-      }
       setLoading(true);
-      const response = await axiosInstance.get("http://localhost:5000/api/users");
-      setUsers(response.data);
+      const res = await api.get("http://localhost:5000/api/users");
+      const data = Array.isArray(res.data) ? res.data : res.data.users || [];
+      setUsers(data);
     } catch (err) {
-      console.error("Error fetching users:", err.response?.data || err);
-      setError(err.response?.data?.message || "Failed to fetch users. Make sure the server is running.");
+      setError(err.response?.data?.message || "Failed to load users.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    if (!window.confirm("Delete this user permanently?")) return;
     try {
-      await axiosInstance.delete(`http://localhost:5000/api/users/${id}`);
-      setUsers(users.filter((user) => user.id !== id));
-      alert("User deleted successfully.");
+      await api.delete(`http://localhost:5000/api/users/${id}`);
+      setUsers((prev) => prev.filter((u) => u._id !== id && u.id !== id));
     } catch (err) {
-      console.error("Delete user error:", err.response?.data || err);
-      alert("Failed to delete user: " + (err.response?.data?.message || err.message));
+      alert(err.response?.data?.message || "Delete failed.");
     }
   };
 
+  const filtered = users.filter(
+    (u) =>
+      (u.username || u.name || "")?.toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || "")?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="admin-container" style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="min-h-screen bg-espresso-950 flex">
       <Sidebar />
-      <div style={{ flex: 1, padding: "20px", fontFamily: "Arial, sans-serif", backgroundColor: "#f0f2f5", overflowX: "auto" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "15px", color: "#333" }}>Registered Users</h2>
-
-        {loading && <p style={{ textAlign: "center" }}>Loading users...</p>}
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
-        {!loading && users.length === 0 && <p style={{ textAlign: "center" }}>No users registered yet.</p>}
-
-        {!loading && users.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <table style={{ width: "85%", borderCollapse: "collapse", backgroundColor: "#fff", borderRadius: "10px", overflow: "hidden", fontSize: "13px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#77a8a8", color: "#fff", textAlign: "center" }}>
-                  <th style={thStyle}>ID</th>
-                  <th style={thStyle}>Username</th>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Phone</th>
-                  <th style={thStyle}>Registered At</th>
-                  <th style={thStyle}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, index) => (
-                  <tr key={user.id} style={{ textAlign: "center", borderBottom: "1px solid #ddd", backgroundColor: index % 2 === 0 ? "#fafafa" : "#fff" }}>
-                    <td>{user.id}</td>
-                    <td>{user.username}</td>
-                    <td>{user.email}</td>
-                    <td>{user.phone || "-"}</td>
-                    <td>{new Date(user.created_at).toLocaleString()}</td>
-                    <td style={{ display: "flex", gap: "5px", justifyContent: "center", flexWrap: "wrap" }}>
-                      <Link to={`/admin/users/edit/${user.id}`} style={{ ...buttonStyle, backgroundColor: "#007bff" }}>
-                        <FaEdit /> Edit
-                      </Link>
-                      <button onClick={() => handleDelete(user.id)} style={{ ...buttonStyle, backgroundColor: "#dc3545" }}>
-                        <FaTrash /> Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="ml-60 flex-1 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
+                <FaUsers className="text-espresso-950 text-lg" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-cream-50 font-playfair">Users</h1>
+                <p className="text-sm text-cream-50/50">Manage registered accounts</p>
+              </div>
+            </div>
+            <span className="text-xs text-cream-50/30 px-3 py-1.5 rounded-full bg-espresso-800/50 border border-espresso-700/50">
+              {users.length} total
+            </span>
           </div>
-        )}
+
+          {error && (
+            <div className="mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
+          )}
+
+          <div className="mb-6 relative">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-cream-50/30 text-sm" />
+            <input type="text" placeholder="Search by username or email..." value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-espresso-900/60 border border-espresso-700/50 text-cream-50 placeholder-cream-50/30 focus:outline-none focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/20 transition-all text-sm" />
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center gap-3 py-20">
+              <FaSpinner className="animate-spin text-gold-400 text-xl" />
+              <span className="text-cream-50/50 text-sm">Loading users...</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-espresso-800/50 flex items-center justify-center">
+                <FaUsers className="text-cream-50/20 text-2xl" />
+              </div>
+              <p className="text-cream-50/40 text-sm">{search ? "No users match your search." : "No users registered yet."}</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-espresso-800/50 overflow-hidden bg-espresso-900/40 backdrop-blur-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-espresso-800/50 bg-espresso-900/60">
+                      <th className="text-left px-4 py-3.5 text-cream-50/60 font-medium">Username</th>
+                      <th className="text-left px-4 py-3.5 text-cream-50/60 font-medium">Email</th>
+                      <th className="text-left px-4 py-3.5 text-cream-50/60 font-medium">Phone</th>
+                      <th className="text-left px-4 py-3.5 text-cream-50/60 font-medium">Registered</th>
+                      <th className="text-right px-4 py-3.5 text-cream-50/60 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((user) => (
+                      <tr key={user._id || user.id} className="border-b border-espresso-800/30 hover:bg-espresso-800/30 transition-colors">
+                        <td className="px-4 py-3.5 text-cream-50 font-medium">{user.username || user.name}</td>
+                        <td className="px-4 py-3.5 text-cream-50/70">{user.email}</td>
+                        <td className="px-4 py-3.5 text-cream-50/70">{user.phone || "\u2014"}</td>
+                        <td className="px-4 py-3.5 text-cream-50/50 text-xs">
+                          {new Date(user.createdAt || user.created_at || Date.now()).toLocaleDateString("en-US", {
+                            year: "numeric", month: "short", day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link to={`/admin/users/edit/${user._id || user.id}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/10 text-gold-400 hover:bg-gold-400/20 transition-all text-xs font-medium">
+                              <FaEdit /> Edit
+                            </Link>
+                            <button onClick={() => handleDelete(user._id || user.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-xs font-medium">
+                              <FaTrash /> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-3 border-t border-espresso-800/30 text-xs text-cream-50/30">
+                {filtered.length} {filtered.length === 1 ? "user" : "users"}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-
-const thStyle = { padding: "8px", textAlign: "center", minWidth: "70px" };
-const buttonStyle = { padding: "4px 8px", borderRadius: "5px", border: "none", cursor: "pointer", color: "#fff", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px", justifyContent: "center", fontSize: "12px", transition: "0.3s", textDecoration: "none" };
